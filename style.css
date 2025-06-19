@@ -1,0 +1,260 @@
+/* Global Dark Mode Styles */
+
+html, body {
+  background: #07090c;
+  color: #eaeaea;
+  font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1.7;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Navbar styling */
+.navbar-container {
+  background: #0d1117;
+  width: 100%;
+  padding: 1rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Post content background */
+.post-article {
+  background: #0c0f14;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 2rem auto;
+  max-width: 1000px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.post-article h1 {
+  text-align: center;
+  width: 100%;
+}
+
+/* About content background */
+.about-article {
+  background: #0c0f14;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 2rem auto;
+  max-width: 1000px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.about-article h1 {
+  text-align: center;
+  width: 100%;
+}
+
+/* Image styling */
+figure {
+  margin: 1.5rem 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+body .post-content img:not(.lightbox img), 
+body .about-content img:not(.lightbox img),
+body figure img:not(.lightbox img) {
+  border: 1px solid #333 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+  background: #23272a !important;
+  padding: 12px !important;
+  max-width: 800px !important;
+  width: auto !important;
+  height: auto !important;
+  display: block !important;
+  cursor: pointer !important;
+  transition: transform 0.2s ease-in-out !important;
+}
+
+body .post-content img:hover:not(.lightbox img), 
+body .about-content img:hover:not(.lightbox img),
+body figure img:hover:not(.lightbox img) {
+  transform: scale(1.02) !important;
+}
+
+/* Lightbox */
+#lightbox {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+}
+
+#lightbox .lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  margin: auto;
+}
+
+#lightbox img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  cursor: default;
+}
+
+/* Exclude navbar logo from image effects */
+.navbar-container img,
+.logo-full,
+.navbar-logo-text {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #fff;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+p, ul, ol, li {
+  color: #eaeaea;
+}
+
+.post-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  list-style: none;
+}
+
+.post-item {
+  width: 100%;
+  max-width: 1000px;
+  text-align: left;
+  margin-bottom: 2.5rem;
+}
+
+.post-title { font-size: 1.5rem; margin: 0; }
+.post-date { font-size: 0.95rem; margin-bottom: 0.5em; }
+
+.post-content, .about-content {
+  width: 100%;
+}
+
+.post-article {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  text-align: justify;
+}
+
+.word-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.word-cloud-title {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+a {
+  color: #67b6be;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: #67b6be;
+  text-decoration: underline;
+}
+
+ul, ol {
+  padding-left: 1.5em;
+}
+
+code, pre {
+  background: #23272a;
+  color: #b3e5fc;
+  font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+  border-radius: 4px;
+  padding: 0.2em 0.4em;
+}
+
+pre {
+  padding: 1em;
+  overflow-x: auto;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #333;
+  margin: 2em 0;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #23272a;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+  html, body {
+    font-size: 16px;
+  }
+}
+
+.no-posts {
+  text-align: center;
+  margin: 2rem 0;
+  color: #eaeaea;
+}
+
+.about-content {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.about-content > * {
+  width: 100%;
+}
+
+/* Add some padding to the main container */
+.center-container {
+  padding: 0 2rem;
+} 
