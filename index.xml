@@ -4,7 +4,7 @@ chasepd&amp;rsquo;s Difficulty Rating: Very Easy
 Release Date: 2017 Tech Stack: Pi-hole, SSH, DNS
 Skills Learned: Default credentials, sudo abuse, file recovery via strings
 Recon Let&amp;rsquo;s get started by adding some hostnames for the box for easier use. I always add boxname as well as boxname.htb to start with.
-Next, we run an nmap scan to get a basic topography of what is going on on the box.</description></item><item><title>About</title><link>https://chasepd.github.io/about/</link><pubDate>Mon, 09 Jun 2025 00:00:00 +0000</pubDate><guid>https://chasepd.github.io/about/</guid><description>Somehow, you’ve found the digital home of gentlem00se — part blog, part lab, part loosely controlled experiment in curiosity.
+Next, we run an nmap scan to get a basic topography of what is going on on the box.</description></item><item><title>About</title><link>https://chasepd.github.io/about/</link><pubDate>Mon, 09 Jun 2025 00:00:00 +0000</pubDate><guid>https://chasepd.github.io/about/</guid><description>Somehow, you’ve found the digital home of chasepd — part blog, part lab, part loosely controlled experiment in curiosity.
 This site is a personal blog and project space for sharing thoughts, tutorials, and creative work.
 Not that I talk about my employer much (or at all) on here, but my views don&amp;rsquo;t represent my employer etc etc.
 Who am I?
