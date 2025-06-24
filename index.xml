@@ -1,4 +1,11 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>chasepd</title><link>https://chasepd.github.io/</link><description>Recent content on chasepd</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Mon, 09 Jun 2025 16:29:06 -0600</lastBuildDate><atom:link href="https://chasepd.github.io/index.xml" rel="self" type="application/rss+xml"/><item><title>Hack the Box - Mirai (Easy) Walkthrough</title><link>https://chasepd.github.io/posts/htb-mirai-walkthrough/</link><pubDate>Mon, 09 Jun 2025 16:29:06 -0600</pubDate><guid>https://chasepd.github.io/posts/htb-mirai-walkthrough/</guid><description>Box Info Box Name: Mirai
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>chasepd</title><link>https://chasepd.github.io/</link><description>Recent content on chasepd</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Mon, 23 Jun 2025 15:53:10 -0600</lastBuildDate><atom:link href="https://chasepd.github.io/index.xml" rel="self" type="application/rss+xml"/><item><title>Hack the Box - UnderPass (Easy) Walkthrough</title><link>https://chasepd.github.io/posts/htb-underpass-walkthrough/</link><pubDate>Mon, 23 Jun 2025 15:53:10 -0600</pubDate><guid>https://chasepd.github.io/posts/htb-underpass-walkthrough/</guid><description>Box Info Box Name: Underpass
+Listed Difficulty Rating: Easy
+chasepd&amp;rsquo;s Difficulty Rating: Easy
+Release Date: 2024
+Tech Stack: SNMP, Daloradius, Mosh
+Skills Learned: SNMP enumeration, open-source software recon, mosh, sudo abuse
+Recon To start, add some hostnames to /etc/hosts/ to make referencing the box easier. I always add boxname as well as boxname.htb to start with.
+Next, we run an nmap scan to get some basic intel on the machine.</description></item><item><title>Hack the Box - Mirai (Easy) Walkthrough</title><link>https://chasepd.github.io/posts/htb-mirai-walkthrough/</link><pubDate>Mon, 09 Jun 2025 16:29:06 -0600</pubDate><guid>https://chasepd.github.io/posts/htb-mirai-walkthrough/</guid><description>Box Info Box Name: Mirai
 Listed Difficulty Rating: Easy
 chasepd&amp;rsquo;s Difficulty Rating: Very Easy
 Release Date: 2017 Tech Stack: Pi-hole, SSH, DNS
