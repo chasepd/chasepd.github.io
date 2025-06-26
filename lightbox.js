@@ -1,4 +1,5 @@
 // Lightbox functionality
+
 class Lightbox {
     constructor() {
         this.init();
@@ -6,6 +7,7 @@ class Lightbox {
 
     init() {
         // Create lightbox element if it doesn't exist
+        console.log('Lightbox functionality loaded');
         if (!document.querySelector('.lightbox')) {
             const lightbox = document.createElement('div');
             lightbox.className = 'lightbox';
