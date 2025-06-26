@@ -258,4 +258,27 @@ hr {
 /* Add some padding to the main container */
 .center-container {
   padding: 0 2rem;
+}
+
+/* Index page featured image styling */
+.index-featured-image {
+  border: 1px solid #333 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+  background: #23272a !important;
+  padding: 12px !important;
+  max-width: 600px !important;
+  width: 75% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0 auto 1em auto !important;
+  cursor: pointer !important;
+  transition: transform 0.2s ease-in-out !important;
+}
+
+.post-featured-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1em;
 } 
