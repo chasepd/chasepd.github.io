@@ -34,7 +34,7 @@ class Lightbox {
     addImageHandlers() {
         const images = document.querySelectorAll('.post-content img, .about-content img, figure img');
         images.forEach(img => {
-            if (!img.closest('.navbar-container') && !img.closest('.lightbox')) {
+            if (!img.closest('.navbar-container') && !img.closest('.lightbox') && !img.classList.contains('social-logo-img')) {
                 img.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();

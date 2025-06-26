@@ -67,9 +67,9 @@ figure {
   align-items: center !important;
 }
 
-body .post-content img:not(.lightbox img), 
-body .about-content img:not(.lightbox img),
-body figure img:not(.lightbox img) {
+body .post-content img:not(.lightbox img):not(.social-logo-img), 
+body .about-content img:not(.lightbox img):not(.social-logo-img),
+body figure img:not(.lightbox img):not(.social-logo-img) {
   border: 1px solid #333 !important;
   border-radius: 8px !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
@@ -83,9 +83,9 @@ body figure img:not(.lightbox img) {
   transition: transform 0.2s ease-in-out !important;
 }
 
-body .post-content img:hover:not(.lightbox img), 
-body .about-content img:hover:not(.lightbox img),
-body figure img:hover:not(.lightbox img) {
+body .post-content img:hover:not(.lightbox img):not(.social-logo-img), 
+body .about-content img:hover:not(.lightbox img):not(.social-logo-img),
+body figure img:hover:not(.lightbox img):not(.social-logo-img) {
   transform: scale(1.02) !important;
 }
 
@@ -281,4 +281,31 @@ hr {
   justify-content: center;
   align-items: center;
   margin-bottom: 1em;
+}
+
+/* Social logo row for about page */
+.social-logo-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 1.2rem;
+  margin: 1.5rem 0;
+}
+.social-logo-link {
+  display: inline-block;
+  transition: transform 0.15s;
+}
+.social-logo-link:hover {
+  transform: scale(1.08);
+}
+.social-logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
 } 
