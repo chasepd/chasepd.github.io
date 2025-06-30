@@ -1,0 +1,122 @@
+<!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Enumerating Windows Machines For Fun And Legal Profit Part 1</title>
+<link rel=stylesheet href=/style.css><style>.navbar-container{display:flex;flex-direction:column;align-items:center;margin-bottom:2rem}.logo-full{display:block;margin:2rem auto .5rem;max-width:720px;height:256px;object-fit:contain}nav.navbar{display:flex;justify-content:center;align-items:center;gap:2.5rem;margin-bottom:1.5rem}.navbar-link{color:#eaeaea;font-size:1.1rem;text-decoration:none;font-weight:500;display:flex;align-items:center;transition:color .2s}.navbar-link:hover{color:#6ec1e4}.navbar-logo-text{height:2.2rem;width:auto;display:block}@media(max-width:600px){.logo-full{max-width:120px;height:40px}nav.navbar{gap:1.2rem}.navbar-logo-text{height:1.3rem}}</style></head><body><div class=navbar-container><a href=/><img src=/logofull.png alt="gentlem00se full logo" class=logo-full></a><nav class=navbar><a href=/ class=navbar-link>Home</a>
+<a href=/categories/ class=navbar-link>Categories</a>
+<a href=/about/ class=navbar-link>About</a></nav></div><div class=center-container><article class=post-article><h1>Enumerating Windows Machines For Fun And Legal Profit Part 1</h1><div class=post-date>Jun 30, 2025</div><div class=post-content><h3 id=this-should-probably-go-without-saying-but-this-should-only-be-used-on-machines-you-have-authorization-to-test-doing-this-against-stuff-you-dont-have-permission-to-is-likely-illegal-i-mean-im-not-a-lawyer-but-im-not-responsible-if-you-do-something-life-altering-dont-be-stupid><em>This should probably go without saying, but this should only be used on machines you have authorization to test. Doing this against stuff you don&rsquo;t have permission to is likely illegal. I mean, I&rsquo;m not a lawyer, but I&rsquo;m not responsible if you do something life-altering. Don&rsquo;t be stupid.</em></h3><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/tools-for-windows-enum/windows-enum.png alt="Enumerating Windows" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>Whether you&rsquo;re conducting penetration testing or participating in Capture The Flag (CTF) competitions, one of the most critical phases is enumeration. Think of enumeration as digital reconnaissance—you&rsquo;re gathering intelligence about your target to understand its structure, services, and potential vulnerabilities before attempting any exploitation. In Windows environments, this process becomes particularly nuanced due to the complex ecosystem of Active Directory, SMB shares, LDAP services, and various authentication mechanisms. If you&rsquo;re anything like me, I ended up doing most of my command-line work in Linux, and only using Windows for gaming and things that absolutely <em>needed</em> Windows. For me, the first time I popped a shell on a CTF box running Windows, it was like&mldr; &ldquo;Ok, now what?&rdquo;</p><p>Windows enumeration is a completely different beast than *nix enumeration. Each tool we&rsquo;ll explore serves as a different lens through which we can examine the target, revealing unique aspects of the Windows infrastructure that might otherwise remain hidden.</p><p>Please note that this article assumes a basic level of understanding of common penetration testing techniques, as well as a basic understanding of Active Directory. If you don&rsquo;t have that, learn about that first, and come back.</p><p>This is part one of a two part series on Windows enumeration; this focuses mostly on understanding a box from the outside, while the follow-up will focus on Active Directory deep dives.</p><h2 id=understanding-the-windows-attack-surface>Understanding the Windows Attack Surface</h2><p>Before diving into specific tools, it&rsquo;s essential to understand what makes Windows environments different. Windows networks often revolve around Active Directory (AD), which serves as the central authentication and authorization service, as well as enabling control for network administrators. This creates a rich ecosystem of interconnected services that communicate through various protocols, each offering different avenues for information gathering. Windows machines also can share files through the SMB (Server Message Block) protocol. While Linux machines can do these things as well, it&rsquo;s atypical for them to be configured that way.</p><p>The protocols we&rsquo;ll focus on include SMB for file sharing, LDAP (Lightweight Directory Access Protocol) for directory services, and various Windows-specific services that expose valuable information about users, groups, shares, and system configurations. Each protocol has its own characteristics and information disclosure patterns, which is why we need different tools to effectively enumerate each one.</p><p>Also, despite Windows as the target here, all of these tools are either Linux-first tools or at least have a Linux version. While we won&rsquo;t dive particularly deeply on any one too, the focus here is on at least highlighting <em>what is available</em>.</p><h2 id=netexec-the-swiss-army-knife-of-network-enumeration>NetExec: The Swiss Army Knife of Network Enumeration</h2><p>NetExec represents the evolution of several network enumeration tools, building upon the foundation laid by tools like CrackMapExec.</p><p>What makes NetExec particularly powerful is its ability to perform multiple enumeration tasks through a single interface. It combines credential testing, service enumeration, and basic exploitation capabilities into one cohesive tool. This integration allows you to move seamlessly from discovery to initial access attempts without switching between multiple tools.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># Basic host discovery and service enumeration</span>
+</span></span><span style=display:flex><span>netexec smb 192.168.1.0/24
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># This command scans the entire subnet for SMB services, revealing:</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - Active hosts running SMB</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - SMB version information</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - Domain information</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - Basic system details</span>
+</span></span></code></pre></div><p>Once you identify active hosts, you can enumerate shares, test for common vulnerabilities, or attempt credential spraying attacks.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># Enumerate shares on discovered hosts using the Guest account (if enabled)</span>
+</span></span><span style=display:flex><span>netexec smb 192.168.1.100 -u Guest -p <span style=color:#e6db74>&#39;&#39;</span> --shares
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Test for common vulnerabilities using an authenticated user</span>
+</span></span><span style=display:flex><span>netexec smb 192.168.1.100 -u bobthebuilder -p <span style=color:#e6db74>&#39;canwefixityeswecan&#39;</span> -M spider_plus
+</span></span></code></pre></div><p>The tool&rsquo;s ability to handle authentication gracefully makes it particularly valuable. It can work with anonymous connections, known credentials, or even attempt to leverage existing authentication tokens, adapting to whatever access level you currently possess.</p><p>The <code>netexec</code> usage output:</p><pre tabindex=0><code>usage: netexec [-h] [--version] [-t THREADS] [--timeout TIMEOUT] [--jitter INTERVAL] [--verbose] [--debug]
+               [--no-progress] [--log LOG] [-6] [--dns-server DNS_SERVER] [--dns-tcp] [--dns-timeout DNS_TIMEOUT]
+               {ldap,ssh,mssql,nfs,winrm,rdp,vnc,smb,ftp,wmi} ...
+
+     .   .
+    .|   |.     _   _          _     _____
+    ||   ||    | \ | |   ___  | |_  | ____| __  __   ___    ___
+    \\( )//    |  \| |  / _ \ | __| |  _|   \ \/ /  / _ \  / __|
+    .=[ ]=.    | |\  | |  __/ | |_  | |___   &gt;  &lt;  |  __/ | (__
+   / /˙-˙\ \   |_| \_|  \___|  \__| |_____| /_/\_\  \___|  \___|
+   ˙ \   / ˙
+     ˙   ˙
+
+    The network execution tool
+    Maintained as an open source project by @NeffIsBack, @MJHallenbeck, @_zblurx
+
+    For documentation and usage examples, visit: https://www.netexec.wiki/
+
+    Version : 1.4.0
+    Codename: SmoothOperator
+    Commit  : Kali Linux
+
+
+options:
+  -h, --help            show this help message and exit
+
+Generic:
+  Generic options for nxc across protocols
+
+  --version             Display nxc version
+  -t, --threads THREADS
+                        set how many concurrent threads to use
+  --timeout TIMEOUT     max timeout in seconds of each thread
+  --jitter INTERVAL     sets a random delay between each authentication
+
+Output:
+  Options to set verbosity levels and control output
+
+  --verbose             enable verbose output
+  --debug               enable debug level information
+  --no-progress         do not displaying progress bar during scan
+  --log LOG             export result into a custom file
+
+DNS:
+  -6                    Enable force IPv6
+  --dns-server DNS_SERVER
+                        Specify DNS server (default: Use hosts file &amp; System DNS)
+  --dns-tcp             Use TCP instead of UDP for DNS queries
+  --dns-timeout DNS_TIMEOUT
+                        DNS query timeout in seconds
+
+Available Protocols:
+  {ldap,ssh,mssql,nfs,winrm,rdp,vnc,smb,ftp,wmi}
+    ldap                own stuff using LDAP
+    ssh                 own stuff using SSH
+    mssql               own stuff using MSSQL
+    nfs                 own stuff using NFS
+    winrm               own stuff using WINRM
+    rdp                 own stuff using RDP
+    vnc                 own stuff using VNC
+    smb                 own stuff using SMB
+    ftp                 own stuff using FTP
+    wmi                 own stuff using WMI
+</code></pre><p>Additional help is available with <code>netexec [protocol] -h</code> to get help or usage for a specific protocol.</p><p>If you start with credentials or if the Guest account is enabled, a favorite usage of mine for this tool is discovering users by <code>rid</code> bruteforcing with <code>netexec smb [target] -u [username] -p [password] --rid-brute</code>.</p><h2 id=smbmap-and-smbclient-file-share-reconnaissance>smbmap and smbclient: File Share Reconnaissance</h2><p>File shares often represent one of the most direct pathways to sensitive information in Windows environments. <code>smbmap</code> and <code>smbclient</code> serve as your primary tools for discovering and exploring these shared resources. Think of these tools as your digital filing cabinet explorers—they help you understand what files and folders are available and what level of access you have to them.</p><p><code>smbmap</code> excels at providing a quick overview of share permissions and accessibility across multiple hosts. It&rsquo;s designed to answer the question: &ldquo;What can I access on this file share server?&rdquo;</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># Discover and map shares across multiple hosts</span>
+</span></span><span style=display:flex><span>smbmap -H 192.168.1.100 -u anonymous -p <span style=color:#e6db74>&#39;&#39;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Recursively explore share contents</span>
+</span></span><span style=display:flex><span>smbmap -H 192.168.1.100 -u username -p password -R
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Search for specific file types or patterns</span>
+</span></span><span style=display:flex><span>smbmap -H 192.168.1.100 -u username -p password -r --depth <span style=color:#ae81ff>3</span> -q
+</span></span></code></pre></div><p>The recursive exploration capability is particularly valuable because it reveals the actual structure and contents of shares beyond just their names. This often uncovers sensitive files, configuration documents, or other valuable information that might not be obvious from share names alone.</p><p><code>smbclient</code> provides more interactive capabilities, allowing you to browse shares via the commandline. This interactive approach is valuable when you need to carefully examine file contents or when you&rsquo;re looking for specific types of information.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># Interactive share browsing (double slashes for escaping)</span>
+</span></span><span style=display:flex><span>smbclient -U username <span style=color:#ae81ff>\\\\</span>192.168.1.100<span style=color:#ae81ff>\\</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Once connected, you can use familiar commands:</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># ls - list directory contents</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># get filename - download files</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># put filename - upload files (if you have write access)</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># cd directory - change directories</span>
+</span></span></code></pre></div><p><code>smbclient</code> can also perform share listing:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># Share listing</span>
+</span></span><span style=display:flex><span>smbclient -U username -L <span style=color:#ae81ff>\\\\</span>192.168.1.100<span style=color:#ae81ff>\\</span>
+</span></span></code></pre></div><h2 id=enum4linux-enumerate-everything>enum4linux: Enumerate everything</h2><p>Though we&rsquo;ve explored deep-dive tools focused on specific purposes, <code>enum4linux</code> takes more of a &ldquo;shotgun&rdquo; approach. Think of enum4linux as the friendly neighborhood guide who introduces you to a new city—it may not know every intimate detail about every building, but it can show you the major landmarks, tell you which neighborhoods are worth exploring, and give you a solid foundation for planning your deeper investigations.</p><p><code>enum4linux</code> represents the evolution of classic UNIX enumeration philosophy applied to Windows targets. The tool embodies the principle that sometimes the best approach to understanding a complex system is to ask it many simple questions and synthesize the answers into a coherent picture. Rather than requiring deep protocol knowledge or complex syntax, enum4linux provides a straightforward interface that handles much of the technical complexity behind the scenes.</p><p>What makes <code>enum4linux</code> particularly valuable for learning and initial reconnaissance is its comprehensive reporting approach. Instead of requiring you to run multiple separate commands and correlate their outputs manually, <code>enum4linux</code> performs a systematic sweep of common enumeration targets and presents the results in an organized, human-readable format. This approach helps you understand what information is typically available through SMB and related protocols without getting lost in the technical details of each individual query.</p><p>The tool&rsquo;s design philosophy centers around accessibility and completeness. When you point <code>enum4linux</code> at a target, it systematically probes for user accounts, shares, password policies, group memberships, and system information using a variety of techniques. This breadth of coverage makes it particularly useful when you&rsquo;re first approaching an unknown Windows environment and need to quickly understand the scope and structure of what you&rsquo;re dealing with.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># Basic comprehensive enumeration of a target system</span>
+</span></span><span style=display:flex><span>enum4linux -a 192.168.1.100
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># The -a flag triggers &#34;all&#34; enumeration modes, which includes:</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - Attempting to identify the target OS and SMB dialect</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - Enumerating available shares and their permissions</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - Listing user accounts and their properties</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - Discovering group information and memberships</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - Extracting password policy details</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - Attempting to identify the domain/workgroup structure</span>
+</span></span></code></pre></div><p>Understanding enum4linux&rsquo;s systematic approach can also increase your own enumeration knowledge. Verbose mode helps you understand how <code>enum4linux</code> gets its data, which can help you understand Windows machines better as a whole:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># Verbose enumeration to see the underlying queries</span>
+</span></span><span style=display:flex><span>enum4linux -v -a 192.168.1.100
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># This reveals the actual SMB commands being executed, such as:</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - NetShareEnum to discover available shares</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - NetUserEnum to list user accounts</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - NetGroupEnum to identify groups</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># - Various policy queries to understand domain settings</span>
+</span></span></code></pre></div><p>enum4linux also demonstrates important concepts about null sessions and anonymous access that remain relevant across many Windows enumeration scenarios. The tool automatically attempts various authentication approaches, from completely anonymous connections to null session establishment, helping you understand what information might be available even without valid credentials. This capability makes it particularly valuable in the early stages of penetration testing when you may not yet have obtained valid authentication material.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># Attempt enumeration with specific credentials when available</span>
+</span></span><span style=display:flex><span>enum4linux -u username -p password -a 192.168.1.100
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Compare results with anonymous enumeration to understand</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># what additional information becomes available with authentication</span>
+</span></span><span style=display:flex><span>enum4linux -a 192.168.1.100
+</span></span></code></pre></div><p>The tool&rsquo;s approach to error handling and graceful degradation provides another important lesson for enumeration methodology. When enum4linux encounters access restrictions or protocol limitations, it continues with other enumeration attempts rather than failing completely, which can be very annoying during a test.</p><h2 id=stay-tuned-for-more>Stay Tuned for More</h2><p>Part 2 will be out soon with more details about Windows Enumeration, specifically about diving into Active Directory.</p></div></article></div><script src=/lightbox.js></script></body></html>
