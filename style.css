@@ -67,9 +67,9 @@ figure {
   align-items: center !important;
 }
 
-body .post-content img:not(.lightbox img):not(.social-logo-img), 
-body .about-content img:not(.lightbox img):not(.social-logo-img),
-body figure img:not(.lightbox img):not(.social-logo-img) {
+body .post-content img:not(.lightbox img):not(.social-logo-img):not(.inline-emoji):not(.no-lightbox-emoji), 
+body .about-content img:not(.lightbox img):not(.social-logo-img):not(.inline-emoji):not(.no-lightbox-emoji),
+body figure img:not(.lightbox img):not(.social-logo-img):not(.inline-emoji):not(.no-lightbox-emoji) {
   border: 1px solid #333 !important;
   border-radius: 8px !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
@@ -83,9 +83,9 @@ body figure img:not(.lightbox img):not(.social-logo-img) {
   transition: transform 0.2s ease-in-out !important;
 }
 
-body .post-content img:hover:not(.lightbox img):not(.social-logo-img), 
-body .about-content img:hover:not(.lightbox img):not(.social-logo-img),
-body figure img:hover:not(.lightbox img):not(.social-logo-img) {
+body .post-content img:hover:not(.lightbox img):not(.social-logo-img):not(.inline-emoji):not(.no-lightbox-emoji), 
+body .about-content img:hover:not(.lightbox img):not(.social-logo-img):not(.inline-emoji):not(.no-lightbox-emoji),
+body figure img:hover:not(.lightbox img):not(.social-logo-img):not(.inline-emoji):not(.no-lightbox-emoji) {
   transform: scale(1.02) !important;
 }
 
