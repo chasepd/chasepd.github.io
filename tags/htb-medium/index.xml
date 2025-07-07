@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Htb-Medium on chasepd</title><link>https://chasepd.github.io/tags/htb-medium/</link><description>Recent content in Htb-Medium on chasepd</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Mon, 07 Jul 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://chasepd.github.io/tags/htb-medium/index.xml" rel="self" type="application/rss+xml"/><item><title>Hack The Box - Voleur (Medium) Walkthrough</title><link>https://chasepd.github.io/posts/htb-voleur-walkthrough/</link><pubDate>Mon, 07 Jul 2025 00:00:00 +0000</pubDate><guid>https://chasepd.github.io/posts/htb-voleur-walkthrough/</guid><description>Box Info Box Name: Voleur
 Listed Difficulty Rating: Medium
-chasepd&amp;rsquo;s Difficulty Rating: Unknown
+chasepd&amp;rsquo;s Difficulty Rating: Medium-Hard
 Release Date: 2025
-Tech Stack:
-Skills Learned:
+Tech Stack: REDACTED Skills Learned: REDACTED
 On this box we start with credentials, which is becoming increasingly common on HTB:
 As is common in real life Windows pentests, you will start the Voleur box with credentials for the following account: ryan.naylor / HollowOct31Nyt
 Initial nmap scan:
-└─$ nmap -oN nmapscan -A voleur Starting Nmap 7.95 ( https://nmap.</description></item><item><title>Hack the Box - VulnCicada (Medium) Walkthrough</title><link>https://chasepd.github.io/posts/htb-vulncicada-walkthrough/</link><pubDate>Sat, 05 Jul 2025 00:00:00 +0000</pubDate><guid>https://chasepd.github.io/posts/htb-vulncicada-walkthrough/</guid><description>Box Info Box Name: VulnCicada
+└─$ nmap -oN nmapscan -A voleur Starting Nmap 7.</description></item><item><title>Hack the Box - VulnCicada (Medium) Walkthrough</title><link>https://chasepd.github.io/posts/htb-vulncicada-walkthrough/</link><pubDate>Sat, 05 Jul 2025 00:00:00 +0000</pubDate><guid>https://chasepd.github.io/posts/htb-vulncicada-walkthrough/</guid><description>Box Info Box Name: VulnCicada
 Listed Difficulty Rating: Medium
 chasepd&amp;rsquo;s Difficulty Rating: Medium-Hard (mostly due to flaky and complicated exploit) Release Date: 2025 (Formerly from Vulnlab, acquired by Hack the Box)
 Tech Stack: Kerberos, NFS, Active Directory, Active Directory Certificate Services Skills Learned: NFS enumeration, Active Directory enumeration, ADCS exploits
