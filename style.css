@@ -336,3 +336,14 @@ hr {
   background: transparent;
   cursor: default;
 }
+
+/* Hide empty first bullet in Hugo Table of Contents */
+#TableOfContents > ul > li:first-child:only-child > a:empty {
+  display: none;
+}
+#TableOfContents > ul > li:first-child:only-child {
+  list-style: none;
+}
+#TableOfContents > ul > li:first-child:only-child > ul {
+  margin-top: 0;
+}
