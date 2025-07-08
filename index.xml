@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>chasepd</title><link>https://chasepd.github.io/</link><description>Recent content on chasepd</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Tue, 08 Jul 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://chasepd.github.io/index.xml" rel="self" type="application/rss+xml"/><item><title>Hack The Box - RustyKey (Hard) Walkthrough</title><link>https://chasepd.github.io/posts/htb-rustykey-walkthrough/</link><pubDate>Tue, 08 Jul 2025 00:00:00 +0000</pubDate><guid>https://chasepd.github.io/posts/htb-rustykey-walkthrough/</guid><description>Box Info Box Name: RustyKey
 Listed Difficulty Rating: Medium
-chasepd&amp;rsquo;s Difficulty Rating: Medium-Hard
+chasepd&amp;rsquo;s Difficulty Rating: Hard
 Release Date: 2025
 Tech Stack: REDACTED Skills Learned: REDACTED
 We start this box with creds: rr.parker / 8#t5HE8L!W3A
