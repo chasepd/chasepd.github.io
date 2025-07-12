@@ -1,0 +1,34 @@
+<!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Hack the Box - Outbound (Easy) Walkthrough</title>
+<meta name=description content="Walkthrough of Outbound, an Easy difficulty box from Hack the Box
+             "><meta property="og:title" content="Hack the Box - Outbound (Easy) Walkthrough"><meta property="og:description" content="Walkthrough of Outbound, an Easy difficulty box from Hack the Box"><meta property="og:type" content="article"><meta property="og:url" content="https://chasepd.github.io/posts/htb-outbound-walkthrough/"><meta property="og:image" content="https://chasepd.github.io/posts/outbound-htb-walkthrough/Outbound.png"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Hack the Box - Outbound (Easy) Walkthrough"><meta name=twitter:description content="Walkthrough of Outbound, an Easy difficulty box from Hack the Box"><meta name=twitter:image content="https://chasepd.github.io/posts/outbound-htb-walkthrough/Outbound.png"><link rel=stylesheet href=/style.css><style>.navbar-container{display:flex;flex-direction:column;align-items:center;margin-bottom:2rem}.logo-full{display:block;margin:2rem auto .5rem;max-width:720px;height:256px;object-fit:contain}nav.navbar{display:flex;justify-content:center;align-items:center;gap:2.5rem;margin-bottom:1.5rem}.navbar-link{color:#eaeaea;font-size:1.1rem;text-decoration:none;font-weight:500;display:flex;align-items:center;transition:color .2s}.navbar-link:hover{color:#6ec1e4}.navbar-logo-text{height:2.2rem;width:auto;display:block}@media(max-width:600px){.logo-full{max-width:120px;height:40px}nav.navbar{gap:1.2rem}.navbar-logo-text{height:1.3rem}}</style></head><body><div class=navbar-container><a href=/><img src=/logofull.png alt="gentlem00se full logo" class=logo-full></a><nav class=navbar><a href=/ class=navbar-link>Home</a>
+<a href=/categories/ class=navbar-link>Categories</a>
+<a href=/about/ class=navbar-link>About</a></nav></div><div class=center-container><article class=post-article><h1>Hack the Box - Outbound (Easy) Walkthrough</h1><figure style=display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%><img src=/posts/outbound-htb-walkthrough/Outbound.png alt="Hack the Box - Outbound (Easy) Walkthrough" loading=lazy style="max-width:100%;height:auto;display:block;margin:0 auto"></figure><div class=post-date>Jul 12, 2025</div><nav class=post-toc><nav id=TableOfContents><ul><li><ul><li><a href=#box-info>Box Info</a></li><li><a href=#recon>Recon</a></li></ul></li></ul></nav></nav><div class=post-content><h3 id=box-info>Box Info</h3><p><strong>Box Name:</strong> Outbound
+<strong>Listed Difficulty Rating:</strong> Easy<br><strong>chasepd&rsquo;s Difficulty Rating:</strong> Medium-Easy
+<strong>Release Date:</strong> 2025<br><strong>Tech Stack:</strong> <em><strong>Redacted</strong></em><br><strong>Skills Learned:</strong> <em><strong>Redacted</strong></em></p><p>We start this box with credentials: <code>tyler / LhKL1o9Nm3X2</code></p><h3 id=recon>Recon</h3><p>Nmap Scan:</p><pre tabindex=0><code>└─$ nmap -oN nmapscan -A outbound.htb
+Starting Nmap 7.95 ( https://nmap.org ) at 2025-07-12 13:57 MDT
+Nmap scan report for outbound.htb (10.129.102.74)
+Host is up (0.068s latency).
+Not shown: 998 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.12 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   256 0c:4b:d2:76:ab:10:06:92:05:dc:f7:55:94:7f:18:df (ECDSA)
+|_  256 2d:6d:4a:4c:ee:2e:11:b6:c8:90:e6:83:e9:df:38:b0 (ED25519)
+80/tcp open  http    nginx 1.24.0 (Ubuntu)
+|_http-title: Did not follow redirect to http://mail.outbound.htb/
+|_http-server-header: nginx/1.24.0 (Ubuntu)
+Device type: general purpose|router
+Running: Linux 4.X|5.X, MikroTik RouterOS 7.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3
+OS details: Linux 4.15 - 5.19, MikroTik RouterOS 7.2 - 7.5 (Linux 5.6.3)
+Network Distance: 2 hops
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE (using port 80/tcp)
+HOP RTT      ADDRESS
+1   69.76 ms 10.10.14.1
+2   70.05 ms outbound.htb (10.129.102.74)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 12.65 seconds
+</code></pre><div style="display:flex;align-items:center;background:#ffeaea;color:#b71c1c;border-radius:10px;padding:1.2em 1.5em;margin:1.5em 0;font-size:1.1em;box-shadow:0 6px 18px rgba(0,0,0,.22),0 2px 6px rgba(0,0,0,.12);border:2px solid #f44336;font-family:inter,segoe ui,roboto,helvetica neue,Arial,sans-serif;line-height:1.6"><span style=flex-shrink:0;font-size:1.7em;margin-right:.8em;display:flex;align-items:center;justify-content:center>⚠️</span><div style=font-weight:500;width:100%>Outbound is currently active on Hack the Box, and per the Hack the Box rules, writeups are not allowed to be posted. The rest of the writeup will be posted once the box is retired.</div></div></div></article></div><script src=/lightbox.js></script></body></html>
